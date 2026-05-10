@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package kimgate.v1;
+
+option go_package = "github.com/project-kgo/kim-gate/proto/kimgate/v1;kimgatev1";
+
+import "google/protobuf/any.proto";
+
+service GatewayService {
+  rpc SendToUsers(SendToUsersRequest) returns (SendResponse);
+  rpc SendToGroup(SendToGroupRequest) returns (SendResponse);
+  rpc Broadcast(BroadcastRequest) returns (SendResponse);
+  rpc GetOnline(GetOnlineRequest) returns (GetOnlineResponse);
+}
+
+message SendToUsersRequest {
+  repeated string user_ids = 1;
+  string method = 2;
+  google.protobuf.Any payload = 3;
+}
+
+message SendToGroupRequest {
+  string group = 1;
+  string method = 2;
+  google.protobuf.Any payload = 3;
+}
+
+message BroadcastRequest {
+  string method = 1;
+  google.protobuf.Any payload = 2;
+}
+
+message SendResponse {
+  int32 matched = 1;
+  int32 sent = 2;
+  int32 failed = 3;
+  string error = 4;
+}
+
+message GetOnlineRequest {
+  string user_id = 1;
+  string group = 2;
+}
+
+message GetOnlineResponse {
+  int32 online = 1;
+}

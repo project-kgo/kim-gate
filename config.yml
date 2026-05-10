@@ -1,0 +1,15 @@
+http:
+  addr: ":8888"
+
+websocket:
+  path: "/hub"
+
+grpc:
+  socket: "/tmp/kim-gate.sock"
+
+shutdown:
+  timeout: "10s"
+
+signalg:
+  ping_interval: "30s"
+  ping_timeout: "60s"

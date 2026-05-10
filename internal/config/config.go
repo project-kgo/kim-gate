@@ -1,0 +1,196 @@
+package config
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+)
+
+const (
+	DefaultHTTPAddr        = ":8888"
+	DefaultWebSocketPath   = "/hub"
+	DefaultGRPCSocket      = "/tmp/kim-gate.sock"
+	DefaultShutdownTimeout = 10 * time.Second
+	DefaultPingInterval    = 30 * time.Second
+	DefaultPingTimeout     = 60 * time.Second
+)
+
+type Config struct {
+	HTTPAddr        string
+	WebSocketPath   string
+	GRPCSocket      string
+	ShutdownTimeout time.Duration
+	PingInterval    time.Duration
+	PingTimeout     time.Duration
+}
+
+func Load(args []string) (Config, error) {
+	v := viper.New()
+	setDefaults(v)
+	bindEnv(v)
+
+	fs := pflag.NewFlagSet("kim-gate", pflag.ContinueOnError)
+	fs.String("config", "", "config file path")
+	fs.String("http-addr", "", "hertz listen address")
+	fs.String("ws-path", "", "websocket path")
+	fs.String("grpc-socket", "", "grpc unix domain socket path")
+	fs.Duration("shutdown-timeout", 0, "graceful shutdown timeout")
+	fs.Duration("ping-interval", 0, "signalg ping interval")
+	fs.Duration("ping-timeout", 0, "signalg ping timeout")
+	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
+		return Config{}, err
+	}
+	if err := bindFlags(v, fs); err != nil {
+		return Config{}, err
+	}
+	if err := readConfigFile(v, fs.Lookup("config").Value.String()); err != nil {
+		return Config{}, err
+	}
+
+	cfg := Config{
+		HTTPAddr:        v.GetString("http.addr"),
+		WebSocketPath:   v.GetString("websocket.path"),
+		GRPCSocket:      v.GetString("grpc.socket"),
+		ShutdownTimeout: v.GetDuration("shutdown.timeout"),
+		PingInterval:    v.GetDuration("signalg.ping_interval"),
+		PingTimeout:     v.GetDuration("signalg.ping_timeout"),
+	}
+
+	cfg.normalize()
+	if err := cfg.Validate(); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
+}
+
+func Defaults() Config {
+	return Config{
+		HTTPAddr:        DefaultHTTPAddr,
+		WebSocketPath:   DefaultWebSocketPath,
+		GRPCSocket:      DefaultGRPCSocket,
+		ShutdownTimeout: DefaultShutdownTimeout,
+		PingInterval:    DefaultPingInterval,
+		PingTimeout:     DefaultPingTimeout,
+	}
+}
+
+func setDefaults(v *viper.Viper) {
+	defaults := Defaults()
+	v.SetDefault("http.addr", defaults.HTTPAddr)
+	v.SetDefault("websocket.path", defaults.WebSocketPath)
+	v.SetDefault("grpc.socket", defaults.GRPCSocket)
+	v.SetDefault("shutdown.timeout", defaults.ShutdownTimeout.String())
+	v.SetDefault("signalg.ping_interval", defaults.PingInterval.String())
+	v.SetDefault("signalg.ping_timeout", defaults.PingTimeout.String())
+}
+
+func bindEnv(v *viper.Viper) {
+	v.SetEnvPrefix("KIM_GATE")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	v.AutomaticEnv()
+	must(v.BindEnv("http.addr", "KIM_GATE_HTTP_ADDR"))
+	must(v.BindEnv("websocket.path", "KIM_GATE_WS_PATH", "KIM_GATE_WEBSOCKET_PATH"))
+	must(v.BindEnv("grpc.socket", "KIM_GATE_GRPC_SOCKET"))
+	must(v.BindEnv("shutdown.timeout", "KIM_GATE_SHUTDOWN_TIMEOUT"))
+	must(v.BindEnv("signalg.ping_interval", "KIM_GATE_PING_INTERVAL"))
+	must(v.BindEnv("signalg.ping_timeout", "KIM_GATE_PING_TIMEOUT"))
+}
+
+func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
+	bindings := map[string]string{
+		"http.addr":             "http-addr",
+		"websocket.path":        "ws-path",
+		"grpc.socket":           "grpc-socket",
+		"shutdown.timeout":      "shutdown-timeout",
+		"signalg.ping_interval": "ping-interval",
+		"signalg.ping_timeout":  "ping-timeout",
+	}
+	for key, name := range bindings {
+		if err := v.BindPFlag(key, fs.Lookup(name)); err != nil {
+			return fmt.Errorf("bind flag %s: %w", name, err)
+		}
+	}
+	return nil
+}
+
+func readConfigFile(v *viper.Viper, configPath string) error {
+	configPath = strings.TrimSpace(configPath)
+	if configPath != "" {
+		v.SetConfigFile(configPath)
+	} else {
+		v.SetConfigName("config")
+		v.SetConfigType("yml")
+		v.AddConfigPath(".")
+	}
+	if err := v.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok && configPath == "" {
+			return nil
+		}
+		return fmt.Errorf("read config file: %w", err)
+	}
+	return nil
+}
+
+func (c *Config) normalize() {
+	c.HTTPAddr = strings.TrimSpace(c.HTTPAddr)
+	c.WebSocketPath = normalizePath(c.WebSocketPath)
+	c.GRPCSocket = strings.TrimSpace(c.GRPCSocket)
+}
+
+func (c Config) Validate() error {
+	if c.HTTPAddr == "" {
+		return errors.New("http addr is required")
+	}
+	if c.WebSocketPath == "" {
+		return errors.New("websocket path is required")
+	}
+	if c.GRPCSocket == "" {
+		return errors.New("grpc socket path is required")
+	}
+	if c.ShutdownTimeout <= 0 {
+		return errors.New("shutdown timeout must be positive")
+	}
+	if c.PingInterval < 0 {
+		return errors.New("ping interval cannot be negative")
+	}
+	if c.PingTimeout < 0 {
+		return errors.New("ping timeout cannot be negative")
+	}
+	return nil
+}
+
+func normalizePath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return DefaultWebSocketPath
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return path
+}
+
+func normalizeFlagArgs(args []string) []string {
+	if len(args) == 0 {
+		return nil
+	}
+	normalized := make([]string, len(args))
+	for i, arg := range args {
+		if strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && len(arg) > 2 {
+			normalized[i] = "-" + arg
+			continue
+		}
+		normalized[i] = arg
+	}
+	return normalized
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

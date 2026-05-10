@@ -21,6 +21,7 @@ description: 项目规范 (Project Rules)
 - **语言**: Go 1.26+
 - **依赖注入**: Google Wire
 - **日志库**: Slog (Structured Logging)
+- **redis** go-redis
 - 基于hertz启动的webscoket
 - grpc提供内部服务
 
