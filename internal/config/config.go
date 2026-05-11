@@ -26,6 +26,8 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	PingInterval    time.Duration
 	PingTimeout     time.Duration
+
+	RedisDSN string
 }
 
 func Load(args []string) (Config, error) {
