@@ -86,6 +86,15 @@ func (h *Hub) OnDisconnected(_ context.Context, conn *signalg.Connection, err er
 	h.log().LogAttrs(context.Background(), slog.LevelInfo, "websocket disconnected", attrs...)
 }
 
+func (h *Hub) OnPing(ctx context.Context, conn *signalg.Connection) error {
+	h.log().Info("websocket ping received",
+		slog.String("connection_id", conn.ID),
+		slog.String("user_id", conn.UserID),
+		slog.String("remote_addr", remoteAddr(conn)),
+	)
+	return nil
+}
+
 // func (h *Hub) OnMessage(ctx context.Context, conn *signalg.Connection, msg signalg.Message) error {
 // 	h.log().Info("websocket message received",
 // 		slog.String("connection_id", conn.ID),

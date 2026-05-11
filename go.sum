@@ -58,6 +58,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/project-kgo/signalg v0.0.0-20260510141836-3fbe5f0ac555 h1:zdGp7BnyaCmlbDPVYYKBC7J5Lm5YLE7HNNy34dvySrg=
 github.com/project-kgo/signalg v0.0.0-20260510141836-3fbe5f0ac555/go.mod h1:X7dzfM+v2FTS4QC/2xnaZa2WDsFbc+//U6TgY1rgZTo=
+github.com/project-kgo/signalg v0.0.0-20260511145829-99fe8c85f1a3 h1:6SC6aguJ2fKBB0lGtFDY0PD3mFRS9uH7ENg+YNJG66o=
+github.com/project-kgo/signalg v0.0.0-20260511145829-99fe8c85f1a3/go.mod h1:X7dzfM+v2FTS4QC/2xnaZa2WDsFbc+//U6TgY1rgZTo=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/sagikazarmark/locafero v0.11.0 h1:1iurJgmM9G3PA/I+wWYIOw/5SyBtxapeHDcg+AAIFXc=
