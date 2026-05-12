@@ -17,6 +17,7 @@ const (
 	DefaultShutdownTimeout = 10 * time.Second
 	DefaultPingInterval    = 30 * time.Second
 	DefaultPingTimeout     = 60 * time.Second
+	DefaultRedisDSN        = "redis://localhost:6379/0"
 )
 
 type Config struct {
@@ -43,6 +44,7 @@ func Load(args []string) (Config, error) {
 	fs.Duration("shutdown-timeout", 0, "graceful shutdown timeout")
 	fs.Duration("ping-interval", 0, "signalg ping interval")
 	fs.Duration("ping-timeout", 0, "signalg ping timeout")
+	fs.String("redis-dsn", "", "redis connection dsn")
 	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
 		return Config{}, err
 	}
@@ -60,6 +62,7 @@ func Load(args []string) (Config, error) {
 		ShutdownTimeout: v.GetDuration("shutdown.timeout"),
 		PingInterval:    v.GetDuration("signalg.ping_interval"),
 		PingTimeout:     v.GetDuration("signalg.ping_timeout"),
+		RedisDSN:        v.GetString("redis.dsn"),
 	}
 
 	cfg.normalize()
@@ -77,6 +80,7 @@ func Defaults() Config {
 		ShutdownTimeout: DefaultShutdownTimeout,
 		PingInterval:    DefaultPingInterval,
 		PingTimeout:     DefaultPingTimeout,
+		RedisDSN:        DefaultRedisDSN,
 	}
 }
 
@@ -88,6 +92,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("shutdown.timeout", defaults.ShutdownTimeout.String())
 	v.SetDefault("signalg.ping_interval", defaults.PingInterval.String())
 	v.SetDefault("signalg.ping_timeout", defaults.PingTimeout.String())
+	v.SetDefault("redis.dsn", defaults.RedisDSN)
 }
 
 func bindEnv(v *viper.Viper) {
@@ -100,6 +105,7 @@ func bindEnv(v *viper.Viper) {
 	must(v.BindEnv("shutdown.timeout", "KIM_GATE_SHUTDOWN_TIMEOUT"))
 	must(v.BindEnv("signalg.ping_interval", "KIM_GATE_PING_INTERVAL"))
 	must(v.BindEnv("signalg.ping_timeout", "KIM_GATE_PING_TIMEOUT"))
+	must(v.BindEnv("redis.dsn", "KIM_GATE_REDIS_DSN"))
 }
 
 func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
@@ -110,6 +116,7 @@ func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 		"shutdown.timeout":      "shutdown-timeout",
 		"signalg.ping_interval": "ping-interval",
 		"signalg.ping_timeout":  "ping-timeout",
+		"redis.dsn":             "redis-dsn",
 	}
 	for key, name := range bindings {
 		if err := v.BindPFlag(key, fs.Lookup(name)); err != nil {
@@ -141,6 +148,7 @@ func (c *Config) normalize() {
 	c.HTTPAddr = strings.TrimSpace(c.HTTPAddr)
 	c.WebSocketPath = normalizePath(c.WebSocketPath)
 	c.GRPCSocket = strings.TrimSpace(c.GRPCSocket)
+	c.RedisDSN = strings.TrimSpace(c.RedisDSN)
 }
 
 func (c Config) Validate() error {
@@ -161,6 +169,9 @@ func (c Config) Validate() error {
 	}
 	if c.PingTimeout < 0 {
 		return errors.New("ping timeout cannot be negative")
+	}
+	if c.RedisDSN == "" {
+		return errors.New("redis dsn is required")
 	}
 	return nil
 }

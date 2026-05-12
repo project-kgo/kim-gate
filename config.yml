@@ -13,3 +13,6 @@ shutdown:
 signalg:
   ping_interval: "30s"
   ping_timeout: "60s"
+
+redis:
+  dsn: "redis://localhost:6379/0"

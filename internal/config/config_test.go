@@ -21,6 +21,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.GRPCSocket != DefaultGRPCSocket {
 		t.Fatalf("GRPCSocket = %q, want %q", cfg.GRPCSocket, DefaultGRPCSocket)
 	}
+	if cfg.RedisDSN != DefaultRedisDSN {
+		t.Fatalf("RedisDSN = %q, want %q", cfg.RedisDSN, DefaultRedisDSN)
+	}
 }
 
 func TestLoadYAMLConfig(t *testing.T) {
@@ -37,6 +40,8 @@ shutdown:
 signalg:
   ping_interval: "2s"
   ping_timeout: "7s"
+redis:
+  dsn: "redis://cache.example.com:6380/2"
 `), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
@@ -63,6 +68,9 @@ signalg:
 	if cfg.PingTimeout != 7*time.Second {
 		t.Fatalf("PingTimeout = %s", cfg.PingTimeout)
 	}
+	if cfg.RedisDSN != "redis://cache.example.com:6380/2" {
+		t.Fatalf("RedisDSN = %q", cfg.RedisDSN)
+	}
 }
 
 func TestLoadEnvAndFlagOverride(t *testing.T) {
@@ -70,11 +78,13 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 	t.Setenv("KIM_GATE_WS_PATH", "ws")
 	t.Setenv("KIM_GATE_GRPC_SOCKET", "/tmp/env.sock")
 	t.Setenv("KIM_GATE_SHUTDOWN_TIMEOUT", "3s")
+	t.Setenv("KIM_GATE_REDIS_DSN", "redis://env.example.com:6379/1")
 
 	cfg, err := Load([]string{
 		"-http-addr", ":7777",
 		"-grpc-socket", "/tmp/flag.sock",
 		"-ping-interval", "2s",
+		"-redis-dsn", "redis://flag.example.com:6379/3",
 	})
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
@@ -93,5 +103,8 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 	}
 	if cfg.PingInterval != 2*time.Second {
 		t.Fatalf("PingInterval = %s", cfg.PingInterval)
+	}
+	if cfg.RedisDSN != "redis://flag.example.com:6379/3" {
+		t.Fatalf("RedisDSN = %q", cfg.RedisDSN)
 	}
 }

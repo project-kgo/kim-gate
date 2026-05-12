@@ -10,6 +10,7 @@ import (
 	"github.com/project-kgo/kim-gate/internal/app"
 	"github.com/project-kgo/kim-gate/internal/auth"
 	"github.com/project-kgo/kim-gate/internal/config"
+	"github.com/project-kgo/kim-gate/internal/data"
 	"github.com/project-kgo/kim-gate/internal/gateway"
 	"github.com/project-kgo/kim-gate/internal/rpc"
 	"github.com/project-kgo/signalg"
@@ -24,6 +25,7 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 		gateway.NewSignalGHandler,
 		gateway.SignalGHandler,
 		gateway.NewHertzServer,
+		data.New,
 		rpc.NewGatewayService,
 		rpc.NewServer,
 		app.New,

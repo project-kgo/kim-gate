@@ -8,6 +8,7 @@ import (
 
 	hertzserver "github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/project-kgo/kim-gate/internal/config"
+	"github.com/project-kgo/kim-gate/internal/data"
 	"github.com/project-kgo/kim-gate/internal/rpc"
 )
 
@@ -16,16 +17,18 @@ type App struct {
 	logger *slog.Logger
 	http   *hertzserver.Hertz
 	grpc   *rpc.Server
+	data   *data.Data
 	done   chan error
 	once   sync.Once
 }
 
-func New(cfg config.Config, logger *slog.Logger, httpServer *hertzserver.Hertz, grpcServer *rpc.Server) *App {
+func New(cfg config.Config, logger *slog.Logger, httpServer *hertzserver.Hertz, grpcServer *rpc.Server, data *data.Data) *App {
 	return &App{
 		cfg:    cfg,
 		logger: logger,
 		http:   httpServer,
 		grpc:   grpcServer,
+		data:   data,
 		done:   make(chan error, 2),
 	}
 }
@@ -64,7 +67,8 @@ func (a *App) Shutdown(ctx context.Context) error {
 	a.once.Do(func() {
 		httpErr := a.http.Shutdown(ctx)
 		grpcErr := a.grpc.Shutdown(ctx)
-		err = errors.Join(httpErr, grpcErr)
+		dataErr := a.data.Close()
+		err = errors.Join(httpErr, grpcErr, dataErr)
 	})
 	return err
 }

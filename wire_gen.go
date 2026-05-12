@@ -10,6 +10,7 @@ import (
 	"github.com/project-kgo/kim-gate/internal/app"
 	"github.com/project-kgo/kim-gate/internal/auth"
 	"github.com/project-kgo/kim-gate/internal/config"
+	"github.com/project-kgo/kim-gate/internal/data"
 	"github.com/project-kgo/kim-gate/internal/gateway"
 	"github.com/project-kgo/kim-gate/internal/rpc"
 	"log/slog"
@@ -34,6 +35,10 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	appApp := app.New(cfg, logger, hertz, server)
+	dataData, err := data.New(cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+	appApp := app.New(cfg, logger, hertz, server, dataData)
 	return appApp, nil
 }
