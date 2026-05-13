@@ -18,7 +18,7 @@ const (
 	DefaultPingInterval    = 30 * time.Second
 	DefaultPingTimeout     = 60 * time.Second
 	DefaultRedisDSN        = "redis://localhost:6379/0"
-	DefaultRedisRouteTTL   = 3 * time.Minute
+	DefaultRedisRouteTTL   = 1 * time.Minute
 )
 
 type Config struct {

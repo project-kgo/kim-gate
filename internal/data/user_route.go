@@ -22,16 +22,14 @@ const (
 )
 
 var registerConnectionScript = redis.NewScript(`
-local hashKey = KEYS[1]
-local zsetKey = KEYS[2]
 local connectionID = ARGV[1]
 local serverID = ARGV[2]
 local ttlSeconds = tonumber(ARGV[3])
 local expireScore = tonumber(ARGV[4])
 local userID = ARGV[5]
 
-redis.call("HSETEX", hashKey, "EX", ttlSeconds, "FIELDS", 1, connectionID, serverID)
-redis.call("ZADD", zsetKey, expireScore, userID)
+redis.call("HSETEX", KEYS[1], "EX", ttlSeconds, "FIELDS", 1, connectionID, serverID)
+redis.call("ZADD", KEYS[2], expireScore, userID)
 
 return 1
 `)
@@ -181,14 +179,14 @@ func (s *UserRouteStore) BucketOf(userID string) int {
 	return bucketOf(userID)
 }
 
-func (s *UserRouteStore) registerScriptArgs(userID, connectionID string) ([]string, []interface{}) {
+func (s *UserRouteStore) registerScriptArgs(userID, connectionID string) ([]string, []any) {
 	now := s.now()
 	bucket := s.BucketOf(userID)
 	keys := []string{
 		userRouteKey(bucket, userID),
 		userExpireKey(bucket),
 	}
-	args := []interface{}{
+	args := []any{
 		connectionID,
 		s.serverID,
 		int64(s.routeTTL / time.Second),
