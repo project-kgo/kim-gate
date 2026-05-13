@@ -11,17 +11,40 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/project-kgo/kim-gate/internal/config"
+	"github.com/project-kgo/kim-gate/internal/data"
 	"github.com/project-kgo/signalg"
 	signalgHz "github.com/project-kgo/signalg/hertz"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 var ErrMethodNotImplemented = errors.New("method not implemented")
 
 type Hub struct {
-	logger *slog.Logger
+	logger     *slog.Logger
+	serverID   string
+	userRoutes userRouteRegistrar
 }
 
-func NewSignalGHandler(cfg config.Config, logger *slog.Logger, userProvider signalg.UserProvider) (*signalgHz.ManagedHandler, error) {
+type userRouteRegistrar interface {
+	RegisterConnection(ctx context.Context, userID, connectionID string) error
+	BucketOf(userID string) int
+}
+
+type ServerID string
+
+func NewServerID() (ServerID, error) {
+	id, err := gonanoid.New()
+	if err != nil {
+		return "", err
+	}
+	return ServerID(id), nil
+}
+
+func ServerIDString(id ServerID) string {
+	return string(id)
+}
+
+func NewSignalGHandler(cfg config.Config, logger *slog.Logger, userProvider signalg.UserProvider, userRoutes *data.UserRouteStore, serverID ServerID) (*signalgHz.ManagedHandler, error) {
 	return signalgHz.NewHandler(signalg.Config{
 		Path:          cfg.WebSocketPath,
 		Logger:        logger,
@@ -30,7 +53,11 @@ func NewSignalGHandler(cfg config.Config, logger *slog.Logger, userProvider sign
 		PingInterval:  cfg.PingInterval,
 		PingTimeout:   cfg.PingTimeout,
 	}, func(*signalg.Connection) (signalg.Hub, error) {
-		return &Hub{logger: logger}, nil
+		return &Hub{
+			logger:     logger,
+			serverID:   string(serverID),
+			userRoutes: userRoutes,
+		}, nil
 	})
 }
 
@@ -66,9 +93,24 @@ func NewHertzServer(cfg config.Config, logger *slog.Logger, wsHandler *signalgHz
 }
 
 func (h *Hub) OnConnected(_ context.Context, conn *signalg.Connection) error {
+	bucket := 0
+	if h.userRoutes != nil {
+		bucket = h.userRoutes.BucketOf(conn.UserID)
+		if err := h.userRoutes.RegisterConnection(context.Background(), conn.UserID, conn.ID); err != nil {
+			h.log().Error("failed to register websocket route",
+				slog.String("connection_id", conn.ID),
+				slog.String("user_id", conn.UserID),
+				slog.String("server_id", h.serverID),
+				slog.Int("bucket", bucket),
+				slog.Any("error", err),
+			)
+		}
+	}
 	h.log().Info("websocket connected",
 		slog.String("connection_id", conn.ID),
 		slog.String("user_id", conn.UserID),
+		slog.String("server_id", h.serverID),
+		slog.Int("bucket", bucket),
 		slog.String("remote_addr", remoteAddr(conn)),
 	)
 	return nil
@@ -78,6 +120,7 @@ func (h *Hub) OnDisconnected(_ context.Context, conn *signalg.Connection, err er
 	attrs := []slog.Attr{
 		slog.String("connection_id", conn.ID),
 		slog.String("user_id", conn.UserID),
+		slog.String("server_id", h.serverID),
 		slog.String("remote_addr", remoteAddr(conn)),
 	}
 	if err != nil {
@@ -90,6 +133,7 @@ func (h *Hub) OnPing(ctx context.Context, conn *signalg.Connection) error {
 	h.log().Info("websocket ping received",
 		slog.String("connection_id", conn.ID),
 		slog.String("user_id", conn.UserID),
+		slog.String("server_id", h.serverID),
 		slog.String("remote_addr", remoteAddr(conn)),
 	)
 	return nil

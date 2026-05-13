@@ -18,6 +18,7 @@ const (
 	DefaultPingInterval    = 30 * time.Second
 	DefaultPingTimeout     = 60 * time.Second
 	DefaultRedisDSN        = "redis://localhost:6379/0"
+	DefaultRedisRouteTTL   = 3 * time.Minute
 )
 
 type Config struct {
@@ -28,7 +29,8 @@ type Config struct {
 	PingInterval    time.Duration
 	PingTimeout     time.Duration
 
-	RedisDSN string
+	RedisDSN      string
+	RedisRouteTTL time.Duration
 }
 
 func Load(args []string) (Config, error) {
@@ -45,6 +47,7 @@ func Load(args []string) (Config, error) {
 	fs.Duration("ping-interval", 0, "signalg ping interval")
 	fs.Duration("ping-timeout", 0, "signalg ping timeout")
 	fs.String("redis-dsn", "", "redis connection dsn")
+	fs.Duration("redis-route-ttl", 0, "redis user route ttl")
 	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
 		return Config{}, err
 	}
@@ -63,6 +66,7 @@ func Load(args []string) (Config, error) {
 		PingInterval:    v.GetDuration("signalg.ping_interval"),
 		PingTimeout:     v.GetDuration("signalg.ping_timeout"),
 		RedisDSN:        v.GetString("redis.dsn"),
+		RedisRouteTTL:   v.GetDuration("redis.route_ttl"),
 	}
 
 	cfg.normalize()
@@ -81,6 +85,7 @@ func Defaults() Config {
 		PingInterval:    DefaultPingInterval,
 		PingTimeout:     DefaultPingTimeout,
 		RedisDSN:        DefaultRedisDSN,
+		RedisRouteTTL:   DefaultRedisRouteTTL,
 	}
 }
 
@@ -93,6 +98,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("signalg.ping_interval", defaults.PingInterval.String())
 	v.SetDefault("signalg.ping_timeout", defaults.PingTimeout.String())
 	v.SetDefault("redis.dsn", defaults.RedisDSN)
+	v.SetDefault("redis.route_ttl", defaults.RedisRouteTTL.String())
 }
 
 func bindEnv(v *viper.Viper) {
@@ -106,6 +112,7 @@ func bindEnv(v *viper.Viper) {
 	must(v.BindEnv("signalg.ping_interval", "KIM_GATE_PING_INTERVAL"))
 	must(v.BindEnv("signalg.ping_timeout", "KIM_GATE_PING_TIMEOUT"))
 	must(v.BindEnv("redis.dsn", "KIM_GATE_REDIS_DSN"))
+	must(v.BindEnv("redis.route_ttl", "KIM_GATE_REDIS_ROUTE_TTL"))
 }
 
 func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
@@ -117,6 +124,7 @@ func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 		"signalg.ping_interval": "ping-interval",
 		"signalg.ping_timeout":  "ping-timeout",
 		"redis.dsn":             "redis-dsn",
+		"redis.route_ttl":       "redis-route-ttl",
 	}
 	for key, name := range bindings {
 		if err := v.BindPFlag(key, fs.Lookup(name)); err != nil {
@@ -172,6 +180,9 @@ func (c Config) Validate() error {
 	}
 	if c.RedisDSN == "" {
 		return errors.New("redis dsn is required")
+	}
+	if c.RedisRouteTTL <= 0 {
+		return errors.New("redis route ttl must be positive")
 	}
 	return nil
 }

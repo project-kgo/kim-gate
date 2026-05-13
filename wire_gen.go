@@ -21,7 +21,20 @@ import (
 func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	rejectResolver := auth.NewRejectResolver()
 	userProvider := auth.NewUserProvider(rejectResolver)
-	managedHandler, err := gateway.NewSignalGHandler(cfg, logger, userProvider)
+	dataData, err := data.New(cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+	serverID, err := gateway.NewServerID()
+	if err != nil {
+		return nil, err
+	}
+	string2 := gateway.ServerIDString(serverID)
+	userRouteStore, err := data.NewUserRouteStore(cfg, dataData, logger, string2)
+	if err != nil {
+		return nil, err
+	}
+	managedHandler, err := gateway.NewSignalGHandler(cfg, logger, userProvider, userRouteStore, serverID)
 	if err != nil {
 		return nil, err
 	}
@@ -32,10 +45,6 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 		return nil, err
 	}
 	server, err := rpc.NewServer(cfg, gatewayService, logger)
-	if err != nil {
-		return nil, err
-	}
-	dataData, err := data.New(cfg, logger)
 	if err != nil {
 		return nil, err
 	}
