@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/project-kgo/kim-gate/internal/data"
@@ -10,29 +11,37 @@ import (
 	"github.com/project-kgo/signalg"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type UserConnectionStore interface {
 	ListUserConnections(ctx context.Context, userID string) ([]data.UserConnectionRoute, error)
 }
 
+type PushPublisher interface {
+	Publish(ctx context.Context, event *kimgatev1.PushEvent) error
+}
+
 type GatewayService struct {
 	kimgatev1.UnimplementedGatewayServiceServer
 	handler         *signalg.Handler
 	connectionStore UserConnectionStore
+	publisher       PushPublisher
 }
 
-func NewGatewayService(handler *signalg.Handler, connectionStore UserConnectionStore) (*GatewayService, error) {
+func NewGatewayService(handler *signalg.Handler, connectionStore UserConnectionStore, publisher PushPublisher) (*GatewayService, error) {
 	if handler == nil {
 		return nil, errors.New("signalg handler is required")
 	}
 	if connectionStore == nil {
 		return nil, errors.New("user connection store is required")
 	}
+	if publisher == nil {
+		return nil, errors.New("push publisher is required")
+	}
 	return &GatewayService{
 		handler:         handler,
 		connectionStore: connectionStore,
+		publisher:       publisher,
 	}, nil
 }
 
@@ -47,7 +56,16 @@ func (s *GatewayService) SendToUsers(ctx context.Context, req *kimgatev1.SendToU
 	if len(userIDs) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "user_ids is required")
 	}
-	return sendResponse(s.handler.SendUsers(ctx, userIDs, req.Method, payloadOrEmpty(req.Payload))), nil
+	event := &kimgatev1.PushEvent{
+		Target:  kimgatev1.PushTarget_PUSH_TARGET_USERS,
+		UserIds: userIDs,
+		Method:  strings.TrimSpace(req.Method),
+		Payload: req.GetPayload(),
+	}
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("publish push event: %v", err))
+	}
+	return &kimgatev1.SendResponse{}, nil
 }
 
 func (s *GatewayService) SendToGroup(ctx context.Context, req *kimgatev1.SendToGroupRequest) (*kimgatev1.SendResponse, error) {
@@ -61,7 +79,16 @@ func (s *GatewayService) SendToGroup(ctx context.Context, req *kimgatev1.SendToG
 	if group == "" {
 		return nil, status.Error(codes.InvalidArgument, "group is required")
 	}
-	return sendResponse(s.handler.SendGroup(ctx, group, req.Method, payloadOrEmpty(req.Payload))), nil
+	event := &kimgatev1.PushEvent{
+		Target:  kimgatev1.PushTarget_PUSH_TARGET_GROUP,
+		Group:   group,
+		Method:  strings.TrimSpace(req.Method),
+		Payload: req.GetPayload(),
+	}
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("publish push event: %v", err))
+	}
+	return &kimgatev1.SendResponse{}, nil
 }
 
 func (s *GatewayService) Broadcast(ctx context.Context, req *kimgatev1.BroadcastRequest) (*kimgatev1.SendResponse, error) {
@@ -71,7 +98,15 @@ func (s *GatewayService) Broadcast(ctx context.Context, req *kimgatev1.Broadcast
 	if err := validateMethod(req.Method); err != nil {
 		return nil, err
 	}
-	return sendResponse(s.handler.SendAll(ctx, req.Method, payloadOrEmpty(req.Payload))), nil
+	event := &kimgatev1.PushEvent{
+		Target:  kimgatev1.PushTarget_PUSH_TARGET_BROADCAST,
+		Method:  strings.TrimSpace(req.Method),
+		Payload: req.GetPayload(),
+	}
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("publish push event: %v", err))
+	}
+	return &kimgatev1.SendResponse{}, nil
 }
 
 func (s *GatewayService) GetOnline(_ context.Context, req *kimgatev1.GetOnlineRequest) (*kimgatev1.GetOnlineResponse, error) {
@@ -138,13 +173,6 @@ func compactStrings(values []string) []string {
 		}
 	}
 	return out
-}
-
-func payloadOrEmpty(payload *anypb.Any) *anypb.Any {
-	if payload != nil {
-		return payload
-	}
-	return &anypb.Any{}
 }
 
 func sendResponse(result signalg.SendResult) *kimgatev1.SendResponse {

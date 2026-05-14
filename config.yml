@@ -16,3 +16,4 @@ signalg:
 
 redis:
   dsn: "redis://localhost:6379/0"
+  push_channel: "kim:gateway:push"

@@ -11,14 +11,15 @@ import (
 )
 
 const (
-	DefaultHTTPAddr        = ":8888"
-	DefaultWebSocketPath   = "/hub"
-	DefaultGRPCSocket      = "/tmp/kim-gate.sock"
-	DefaultShutdownTimeout = 10 * time.Second
-	DefaultPingInterval    = 30 * time.Second
-	DefaultPingTimeout     = 60 * time.Second
-	DefaultRedisDSN        = "redis://localhost:6379/0"
-	DefaultRedisRouteTTL   = 1 * time.Minute
+	DefaultHTTPAddr         = ":8888"
+	DefaultWebSocketPath    = "/hub"
+	DefaultGRPCSocket       = "/tmp/kim-gate.sock"
+	DefaultShutdownTimeout  = 10 * time.Second
+	DefaultPingInterval     = 30 * time.Second
+	DefaultPingTimeout      = 60 * time.Second
+	DefaultRedisDSN         = "redis://localhost:6379/0"
+	DefaultRedisRouteTTL    = 1 * time.Minute
+	DefaultRedisPushChannel = "kim:gateway:push"
 )
 
 type Config struct {
@@ -29,8 +30,9 @@ type Config struct {
 	PingInterval    time.Duration
 	PingTimeout     time.Duration
 
-	RedisDSN      string
-	RedisRouteTTL time.Duration
+	RedisDSN         string
+	RedisRouteTTL    time.Duration
+	RedisPushChannel string
 }
 
 func Load(args []string) (Config, error) {
@@ -48,6 +50,7 @@ func Load(args []string) (Config, error) {
 	fs.Duration("ping-timeout", 0, "signalg ping timeout")
 	fs.String("redis-dsn", "", "redis connection dsn")
 	fs.Duration("redis-route-ttl", 0, "redis user route ttl")
+	fs.String("redis-push-channel", "", "redis push pub/sub channel")
 	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
 		return Config{}, err
 	}
@@ -59,14 +62,15 @@ func Load(args []string) (Config, error) {
 	}
 
 	cfg := Config{
-		HTTPAddr:        v.GetString("http.addr"),
-		WebSocketPath:   v.GetString("websocket.path"),
-		GRPCSocket:      v.GetString("grpc.socket"),
-		ShutdownTimeout: v.GetDuration("shutdown.timeout"),
-		PingInterval:    v.GetDuration("signalg.ping_interval"),
-		PingTimeout:     v.GetDuration("signalg.ping_timeout"),
-		RedisDSN:        v.GetString("redis.dsn"),
-		RedisRouteTTL:   v.GetDuration("redis.route_ttl"),
+		HTTPAddr:         v.GetString("http.addr"),
+		WebSocketPath:    v.GetString("websocket.path"),
+		GRPCSocket:       v.GetString("grpc.socket"),
+		ShutdownTimeout:  v.GetDuration("shutdown.timeout"),
+		PingInterval:     v.GetDuration("signalg.ping_interval"),
+		PingTimeout:      v.GetDuration("signalg.ping_timeout"),
+		RedisDSN:         v.GetString("redis.dsn"),
+		RedisRouteTTL:    v.GetDuration("redis.route_ttl"),
+		RedisPushChannel: v.GetString("redis.push_channel"),
 	}
 
 	cfg.normalize()
@@ -78,14 +82,15 @@ func Load(args []string) (Config, error) {
 
 func Defaults() Config {
 	return Config{
-		HTTPAddr:        DefaultHTTPAddr,
-		WebSocketPath:   DefaultWebSocketPath,
-		GRPCSocket:      DefaultGRPCSocket,
-		ShutdownTimeout: DefaultShutdownTimeout,
-		PingInterval:    DefaultPingInterval,
-		PingTimeout:     DefaultPingTimeout,
-		RedisDSN:        DefaultRedisDSN,
-		RedisRouteTTL:   DefaultRedisRouteTTL,
+		HTTPAddr:         DefaultHTTPAddr,
+		WebSocketPath:    DefaultWebSocketPath,
+		GRPCSocket:       DefaultGRPCSocket,
+		ShutdownTimeout:  DefaultShutdownTimeout,
+		PingInterval:     DefaultPingInterval,
+		PingTimeout:      DefaultPingTimeout,
+		RedisDSN:         DefaultRedisDSN,
+		RedisRouteTTL:    DefaultRedisRouteTTL,
+		RedisPushChannel: DefaultRedisPushChannel,
 	}
 }
 
@@ -99,6 +104,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("signalg.ping_timeout", defaults.PingTimeout.String())
 	v.SetDefault("redis.dsn", defaults.RedisDSN)
 	v.SetDefault("redis.route_ttl", defaults.RedisRouteTTL.String())
+	v.SetDefault("redis.push_channel", defaults.RedisPushChannel)
 }
 
 func bindEnv(v *viper.Viper) {
@@ -113,6 +119,7 @@ func bindEnv(v *viper.Viper) {
 	must(v.BindEnv("signalg.ping_timeout", "KIM_GATE_PING_TIMEOUT"))
 	must(v.BindEnv("redis.dsn", "KIM_GATE_REDIS_DSN"))
 	must(v.BindEnv("redis.route_ttl", "KIM_GATE_REDIS_ROUTE_TTL"))
+	must(v.BindEnv("redis.push_channel", "KIM_GATE_REDIS_PUSH_CHANNEL"))
 }
 
 func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
@@ -125,6 +132,7 @@ func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 		"signalg.ping_timeout":  "ping-timeout",
 		"redis.dsn":             "redis-dsn",
 		"redis.route_ttl":       "redis-route-ttl",
+		"redis.push_channel":    "redis-push-channel",
 	}
 	for key, name := range bindings {
 		if err := v.BindPFlag(key, fs.Lookup(name)); err != nil {
@@ -157,6 +165,7 @@ func (c *Config) normalize() {
 	c.WebSocketPath = normalizePath(c.WebSocketPath)
 	c.GRPCSocket = strings.TrimSpace(c.GRPCSocket)
 	c.RedisDSN = strings.TrimSpace(c.RedisDSN)
+	c.RedisPushChannel = strings.TrimSpace(c.RedisPushChannel)
 }
 
 func (c Config) Validate() error {
@@ -183,6 +192,9 @@ func (c Config) Validate() error {
 	}
 	if c.RedisRouteTTL <= 0 {
 		return errors.New("redis route ttl must be positive")
+	}
+	if c.RedisPushChannel == "" {
+		return errors.New("redis push channel is required")
 	}
 	return nil
 }

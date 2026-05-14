@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"reflect"
@@ -16,6 +17,7 @@ import (
 
 func TestGatewayServiceValidation(t *testing.T) {
 	service := newTestService(t)
+	publisher := service.publisher.(*stubPushPublisher)
 
 	tests := []struct {
 		name string
@@ -60,35 +62,89 @@ func TestGatewayServiceValidation(t *testing.T) {
 			if status.Code(err) != codes.InvalidArgument {
 				t.Fatalf("code = %s, want %s, err=%v", status.Code(err), codes.InvalidArgument, err)
 			}
+			if publisher.publishCount != 0 {
+				t.Fatalf("publish count = %d, want 0", publisher.publishCount)
+			}
 		})
 	}
 }
 
-func TestGatewayServiceBroadcastMapsSendResult(t *testing.T) {
-	service := newTestService(t)
+func TestGatewayServicePublishesBroadcastEvent(t *testing.T) {
+	publisher := &stubPushPublisher{}
+	service := newTestServiceWithPublisher(t, &stubUserConnectionStore{}, publisher)
+	payload := []byte("encoded-by-app")
 
-	resp, err := service.Broadcast(context.Background(), &kimgatev1.BroadcastRequest{Method: "server.push"})
+	resp, err := service.Broadcast(context.Background(), &kimgatev1.BroadcastRequest{
+		Method:  "server.push",
+		Payload: payload,
+	})
 	if err != nil {
 		t.Fatalf("Broadcast returned error: %v", err)
 	}
 	if resp.Matched != 0 || resp.Sent != 0 || resp.Failed != 0 || resp.Error != "" {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
+	if publisher.publishCount != 1 {
+		t.Fatalf("publish count = %d, want 1", publisher.publishCount)
+	}
+	if publisher.event.GetTarget() != kimgatev1.PushTarget_PUSH_TARGET_BROADCAST || publisher.event.GetMethod() != "server.push" {
+		t.Fatalf("event = %+v", publisher.event)
+	}
+	if !reflect.DeepEqual(publisher.event.GetPayload(), payload) {
+		t.Fatalf("payload = %q, want %q", publisher.event.GetPayload(), payload)
+	}
 }
 
-func TestGatewayServiceSupportsAppGroupAddressing(t *testing.T) {
-	service := newTestService(t)
+func TestGatewayServicePublishesUserAndGroupEvents(t *testing.T) {
+	publisher := &stubPushPublisher{}
+	service := newTestServiceWithPublisher(t, &stubUserConnectionStore{}, publisher)
 
-	groupResp, err := service.SendToGroup(context.Background(), &kimgatev1.SendToGroupRequest{
-		Group:  "app:app1",
-		Method: "server.push",
+	_, err := service.SendToUsers(context.Background(), &kimgatev1.SendToUsersRequest{
+		UserIds: []string{" user-1 ", "", "user-2"},
+		Method:  "server.push",
+		Payload: []byte("users-payload"),
+	})
+	if err != nil {
+		t.Fatalf("SendToUsers returned error: %v", err)
+	}
+	if publisher.event.GetTarget() != kimgatev1.PushTarget_PUSH_TARGET_USERS {
+		t.Fatalf("target = %s, want users", publisher.event.GetTarget())
+	}
+	if !reflect.DeepEqual(publisher.event.GetUserIds(), []string{"user-1", "user-2"}) {
+		t.Fatalf("user ids = %v", publisher.event.GetUserIds())
+	}
+	if !reflect.DeepEqual(publisher.event.GetPayload(), []byte("users-payload")) {
+		t.Fatalf("payload = %q", publisher.event.GetPayload())
+	}
+
+	_, err = service.SendToGroup(context.Background(), &kimgatev1.SendToGroupRequest{
+		Group:   "app:app1",
+		Method:  "server.push",
+		Payload: []byte("group-payload"),
 	})
 	if err != nil {
 		t.Fatalf("SendToGroup returned error: %v", err)
 	}
-	if groupResp.Matched != 0 || groupResp.Sent != 0 || groupResp.Failed != 0 || groupResp.Error != "" {
-		t.Fatalf("unexpected group response: %+v", groupResp)
+	if publisher.event.GetTarget() != kimgatev1.PushTarget_PUSH_TARGET_GROUP || publisher.event.GetGroup() != "app:app1" {
+		t.Fatalf("event = %+v", publisher.event)
 	}
+	if !reflect.DeepEqual(publisher.event.GetPayload(), []byte("group-payload")) {
+		t.Fatalf("payload = %q", publisher.event.GetPayload())
+	}
+}
+
+func TestGatewayServicePublishFailureReturnsInternal(t *testing.T) {
+	publisher := &stubPushPublisher{err: errors.New("redis down")}
+	service := newTestServiceWithPublisher(t, &stubUserConnectionStore{}, publisher)
+
+	_, err := service.Broadcast(context.Background(), &kimgatev1.BroadcastRequest{Method: "server.push"})
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("code = %s, want %s, err=%v", status.Code(err), codes.Internal, err)
+	}
+}
+
+func TestGatewayServiceSupportsAppGroupAddressingForOnline(t *testing.T) {
+	service := newTestService(t)
 
 	onlineResp, err := service.GetOnline(context.Background(), &kimgatev1.GetOnlineRequest{
 		Group: "app:app1",
@@ -128,10 +184,15 @@ func TestGatewayServiceGetUserConnections(t *testing.T) {
 
 func newTestService(t *testing.T) *GatewayService {
 	t.Helper()
-	return newTestServiceWithStore(t, &stubUserConnectionStore{})
+	return newTestServiceWithPublisher(t, &stubUserConnectionStore{}, &stubPushPublisher{})
 }
 
 func newTestServiceWithStore(t *testing.T, store UserConnectionStore) *GatewayService {
+	t.Helper()
+	return newTestServiceWithPublisher(t, store, &stubPushPublisher{})
+}
+
+func newTestServiceWithPublisher(t *testing.T, store UserConnectionStore, publisher PushPublisher) *GatewayService {
 	t.Helper()
 	handler, err := signalg.NewHandler(signalg.Config{
 		Logger:        slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -142,7 +203,7 @@ func newTestServiceWithStore(t *testing.T, store UserConnectionStore) *GatewaySe
 	if err != nil {
 		t.Fatalf("NewHandler returned error: %v", err)
 	}
-	service, err := NewGatewayService(handler, store)
+	service, err := NewGatewayService(handler, store, publisher)
 	if err != nil {
 		t.Fatalf("NewGatewayService returned error: %v", err)
 	}
@@ -166,4 +227,20 @@ type stubUserConnectionStore struct {
 func (s *stubUserConnectionStore) ListUserConnections(_ context.Context, userID string) ([]data.UserConnectionRoute, error) {
 	s.userID = userID
 	return append([]data.UserConnectionRoute(nil), s.connections...), s.err
+}
+
+type stubPushPublisher struct {
+	publishCount int
+	event        *kimgatev1.PushEvent
+	err          error
+}
+
+func (s *stubPushPublisher) Publish(_ context.Context, event *kimgatev1.PushEvent) error {
+	s.publishCount++
+	if event != nil {
+		copied := *event
+		copied.UserIds = append([]string(nil), event.UserIds...)
+		s.event = &copied
+	}
+	return s.err
 }

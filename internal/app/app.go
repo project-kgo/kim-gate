@@ -7,35 +7,51 @@ import (
 	"sync"
 
 	hertzserver "github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/project-kgo/kim-gate/internal/cluster"
 	"github.com/project-kgo/kim-gate/internal/config"
 	"github.com/project-kgo/kim-gate/internal/data"
 	"github.com/project-kgo/kim-gate/internal/rpc"
 )
 
 type App struct {
-	cfg    config.Config
-	logger *slog.Logger
-	http   *hertzserver.Hertz
-	grpc   *rpc.Server
-	data   *data.Data
-	done   chan error
-	once   sync.Once
+	cfg        config.Config
+	logger     *slog.Logger
+	http       *hertzserver.Hertz
+	grpc       *rpc.Server
+	data       *data.Data
+	push       *cluster.Subscriber
+	pushCancel context.CancelFunc
+	done       chan error
+	once       sync.Once
 }
 
-func New(cfg config.Config, logger *slog.Logger, httpServer *hertzserver.Hertz, grpcServer *rpc.Server, data *data.Data) *App {
+func New(cfg config.Config, logger *slog.Logger, httpServer *hertzserver.Hertz, grpcServer *rpc.Server, data *data.Data, pushSubscriber *cluster.Subscriber) *App {
 	return &App{
 		cfg:    cfg,
 		logger: logger,
 		http:   httpServer,
 		grpc:   grpcServer,
 		data:   data,
-		done:   make(chan error, 2),
+		push:   pushSubscriber,
+		done:   make(chan error, 3),
 	}
 }
 
 func (a *App) Start() error {
 	if a == nil {
 		return errors.New("app is nil")
+	}
+	if a.push != nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		a.pushCancel = cancel
+		go func() {
+			if a.logger != nil {
+				a.logger.Info("redis push subscriber started", slog.String("channel", a.cfg.RedisPushChannel))
+			}
+			if err := a.push.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				a.done <- err
+			}
+		}()
 	}
 	a.grpc.Start()
 	go func() {
@@ -65,6 +81,9 @@ func (a *App) Shutdown(ctx context.Context) error {
 	}
 	var err error
 	a.once.Do(func() {
+		if a.pushCancel != nil {
+			a.pushCancel()
+		}
 		httpErr := a.http.Shutdown(ctx)
 		grpcErr := a.grpc.Shutdown(ctx)
 		dataErr := a.data.Close()

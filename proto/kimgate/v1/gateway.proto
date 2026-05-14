@@ -4,7 +4,20 @@ package kimgate.v1;
 
 option go_package = "github.com/project-kgo/kim-gate/proto/kimgate/v1;kimgatev1";
 
-import "google/protobuf/any.proto";
+enum PushTarget {
+  PUSH_TARGET_UNSPECIFIED = 0;
+  PUSH_TARGET_USERS = 1;
+  PUSH_TARGET_GROUP = 2;
+  PUSH_TARGET_BROADCAST = 3;
+}
+
+message PushEvent {
+  PushTarget target = 1;
+  repeated string user_ids = 2;
+  string group = 3;
+  string method = 4;
+  bytes payload = 5;
+}
 
 service GatewayService {
   rpc SendToUsers(SendToUsersRequest) returns (SendResponse);
@@ -17,18 +30,18 @@ service GatewayService {
 message SendToUsersRequest {
   repeated string user_ids = 1;
   string method = 2;
-  google.protobuf.Any payload = 3;
+  bytes payload = 3;
 }
 
 message SendToGroupRequest {
   string group = 1;
   string method = 2;
-  google.protobuf.Any payload = 3;
+  bytes payload = 3;
 }
 
 message BroadcastRequest {
   string method = 1;
-  google.protobuf.Any payload = 2;
+  bytes payload = 2;
 }
 
 message SendResponse {

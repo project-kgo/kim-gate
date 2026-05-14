@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/project-kgo/kim-gate/internal/app"
 	"github.com/project-kgo/kim-gate/internal/auth"
+	"github.com/project-kgo/kim-gate/internal/cluster"
 	"github.com/project-kgo/kim-gate/internal/config"
 	"github.com/project-kgo/kim-gate/internal/data"
 	"github.com/project-kgo/kim-gate/internal/gateway"
@@ -40,7 +41,11 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	}
 	hertz := gateway.NewHertzServer(cfg, logger, managedHandler)
 	handler := gateway.SignalGHandler(managedHandler)
-	gatewayService, err := rpc.NewGatewayService(handler, userRouteStore)
+	publisher, err := cluster.NewPublisher(cfg, dataData)
+	if err != nil {
+		return nil, err
+	}
+	gatewayService, err := rpc.NewGatewayService(handler, userRouteStore, publisher)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +53,10 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	appApp := app.New(cfg, logger, hertz, server, dataData)
+	subscriber, err := cluster.NewSubscriber(cfg, dataData, handler, logger)
+	if err != nil {
+		return nil, err
+	}
+	appApp := app.New(cfg, logger, hertz, server, dataData, subscriber)
 	return appApp, nil
 }

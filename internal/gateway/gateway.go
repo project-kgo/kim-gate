@@ -10,11 +10,11 @@ import (
 	hertzserver "github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/project-kgo/kim-gate/internal/config"
 	"github.com/project-kgo/kim-gate/internal/data"
 	"github.com/project-kgo/signalg"
 	signalgHz "github.com/project-kgo/signalg/hertz"
-	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 var ErrMethodNotImplemented = errors.New("method not implemented")
