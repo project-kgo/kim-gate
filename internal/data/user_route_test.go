@@ -62,6 +62,42 @@ func TestUserRouteStoreRegisterConnectionBuildsScriptArgs(t *testing.T) {
 	}
 }
 
+func TestUserRouteStoreRefreshConnectionUsesSameLuaScript(t *testing.T) {
+	client := &fakeUserRouteRedis{}
+	store, err := NewUserRouteStoreWithRedis(client, 90*time.Second, "server-a", nil)
+	if err != nil {
+		t.Fatalf("NewUserRouteStoreWithRedis returned error: %v", err)
+	}
+	fixedNow := time.UnixMilli(1_800_000_000_000)
+	store.now = func() time.Time { return fixedNow }
+
+	if err := store.RefreshConnection(context.Background(), "user-2", "conn-2"); err != nil {
+		t.Fatalf("RefreshConnection returned error: %v", err)
+	}
+
+	wantBucket := store.BucketOf("user-2")
+	wantKeys := []string{
+		userRouteKey(wantBucket, "user-2"),
+		userExpireKey(wantBucket),
+	}
+	if !reflect.DeepEqual(client.runKeys, wantKeys) {
+		t.Fatalf("script keys = %v, want %v", client.runKeys, wantKeys)
+	}
+	wantArgs := []interface{}{
+		"conn-2",
+		"server-a",
+		int64(90),
+		fixedNow.Add(90 * time.Second).UnixMilli(),
+		"user-2",
+	}
+	if !reflect.DeepEqual(client.runArgs, wantArgs) {
+		t.Fatalf("script args = %#v, want %#v", client.runArgs, wantArgs)
+	}
+	if client.runScript == nil || client.runScript.Hash() != registerConnectionScript.Hash() {
+		t.Fatal("script hash mismatch")
+	}
+}
+
 func TestUserRouteStoreListUserServerIDsDeduplicates(t *testing.T) {
 	client := &fakeUserRouteRedis{
 		hashValues: map[string]string{

@@ -27,6 +27,7 @@ type Hub struct {
 
 type userRouteRegistrar interface {
 	RegisterConnection(ctx context.Context, userID, connectionID string) error
+	RefreshConnection(ctx context.Context, userID, connectionID string) error
 	BucketOf(userID string) int
 }
 
@@ -130,6 +131,18 @@ func (h *Hub) OnDisconnected(_ context.Context, conn *signalg.Connection, err er
 }
 
 func (h *Hub) OnPing(ctx context.Context, conn *signalg.Connection) error {
+	if h.userRoutes != nil {
+		bucket := h.userRoutes.BucketOf(conn.UserID)
+		if err := h.userRoutes.RefreshConnection(ctx, conn.UserID, conn.ID); err != nil {
+			h.log().Error("failed to refresh websocket route",
+				slog.String("connection_id", conn.ID),
+				slog.String("user_id", conn.UserID),
+				slog.String("server_id", h.serverID),
+				slog.Int("bucket", bucket),
+				slog.Any("error", err),
+			)
+		}
+	}
 	h.log().Info("websocket ping received",
 		slog.String("connection_id", conn.ID),
 		slog.String("user_id", conn.UserID),

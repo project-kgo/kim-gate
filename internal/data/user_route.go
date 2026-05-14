@@ -101,6 +101,14 @@ func NewUserRouteStoreWithRedis(client userRouteRedis, routeTTL time.Duration, s
 }
 
 func (s *UserRouteStore) RegisterConnection(ctx context.Context, userID, connectionID string) error {
+	return s.refreshConnection(ctx, userID, connectionID)
+}
+
+func (s *UserRouteStore) RefreshConnection(ctx context.Context, userID, connectionID string) error {
+	return s.refreshConnection(ctx, userID, connectionID)
+}
+
+func (s *UserRouteStore) refreshConnection(ctx context.Context, userID, connectionID string) error {
 	userID = strings.TrimSpace(userID)
 	connectionID = strings.TrimSpace(connectionID)
 	if userID == "" {
@@ -112,7 +120,7 @@ func (s *UserRouteStore) RegisterConnection(ctx context.Context, userID, connect
 
 	keys, args := s.registerScriptArgs(userID, connectionID)
 	if err := s.redis.RunScript(ctx, registerConnectionScript, keys, args...); err != nil {
-		return fmt.Errorf("register user route: %w", err)
+		return fmt.Errorf("refresh user route: %w", err)
 	}
 	return nil
 }

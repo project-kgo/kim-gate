@@ -48,16 +48,44 @@ func TestHubOnConnectedDoesNotBlockOnRouteError(t *testing.T) {
 	}
 }
 
+func TestHubOnPingRefreshesUserRoute(t *testing.T) {
+	routes := &fakeUserRoutes{bucket: 9}
+	hub := &Hub{
+		logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		serverID:   "server-1",
+		userRoutes: routes,
+	}
+
+	err := hub.OnPing(context.Background(), &signalg.Connection{
+		ID:     "conn-9",
+		UserID: "user-9",
+	})
+	if err != nil {
+		t.Fatalf("OnPing returned error: %v", err)
+	}
+	if routes.refreshedUserID != "user-9" || routes.refreshedConnID != "conn-9" {
+		t.Fatalf("refreshed route = (%q, %q)", routes.refreshedUserID, routes.refreshedConnID)
+	}
+}
+
 type fakeUserRoutes struct {
 	bucket           int
 	registerErr      error
 	registeredUserID string
 	registeredConnID string
+	refreshedUserID  string
+	refreshedConnID  string
 }
 
 func (f *fakeUserRoutes) RegisterConnection(_ context.Context, userID, connectionID string) error {
 	f.registeredUserID = userID
 	f.registeredConnID = connectionID
+	return f.registerErr
+}
+
+func (f *fakeUserRoutes) RefreshConnection(_ context.Context, userID, connectionID string) error {
+	f.refreshedUserID = userID
+	f.refreshedConnID = connectionID
 	return f.registerErr
 }
 
