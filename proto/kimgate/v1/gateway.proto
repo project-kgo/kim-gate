@@ -11,6 +11,7 @@ service GatewayService {
   rpc SendToGroup(SendToGroupRequest) returns (SendResponse);
   rpc Broadcast(BroadcastRequest) returns (SendResponse);
   rpc GetOnline(GetOnlineRequest) returns (GetOnlineResponse);
+  rpc GetUserConnections(GetUserConnectionsRequest) returns (GetUserConnectionsResponse);
 }
 
 message SendToUsersRequest {
@@ -44,4 +45,17 @@ message GetOnlineRequest {
 
 message GetOnlineResponse {
   int32 online = 1;
+}
+
+message GetUserConnectionsRequest {
+  string user_id = 1;
+}
+
+message UserConnection {
+  string connection_id = 1;
+  string server_id = 2;
+}
+
+message GetUserConnectionsResponse {
+  repeated UserConnection connections = 1;
 }

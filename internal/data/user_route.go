@@ -73,6 +73,11 @@ type UserRouteStore struct {
 	now      func() time.Time
 }
 
+type UserConnectionRoute struct {
+	ConnectionID string
+	ServerID     string
+}
+
 func NewUserRouteStore(cfg config.Config, data *Data, logger *slog.Logger, serverID string) (*UserRouteStore, error) {
 	if data == nil || data.Redis == nil {
 		return nil, errors.New("redis client is required")
@@ -154,6 +159,38 @@ func (s *UserRouteStore) ListUserServerIDs(ctx context.Context, userID string) (
 	}
 	sort.Strings(serverIDs)
 	return serverIDs, nil
+}
+
+func (s *UserRouteStore) ListUserConnections(ctx context.Context, userID string) ([]UserConnectionRoute, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, nil
+	}
+
+	values, err := s.redis.HGetAll(ctx, userRouteKey(s.BucketOf(userID), userID))
+	if err != nil {
+		return nil, fmt.Errorf("load user route: %w", err)
+	}
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	connections := make([]UserConnectionRoute, 0, len(values))
+	for connectionID, serverID := range values {
+		connectionID = strings.TrimSpace(connectionID)
+		serverID = strings.TrimSpace(serverID)
+		if connectionID == "" || serverID == "" {
+			continue
+		}
+		connections = append(connections, UserConnectionRoute{
+			ConnectionID: connectionID,
+			ServerID:     serverID,
+		})
+	}
+	sort.Slice(connections, func(i, j int) bool {
+		return connections[i].ConnectionID < connections[j].ConnectionID
+	})
+	return connections, nil
 }
 
 func (s *UserRouteStore) PollExpiredUsers(ctx context.Context, bucket int, limit int, now time.Time, fn func(context.Context, string) error) error {

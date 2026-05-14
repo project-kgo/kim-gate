@@ -4,8 +4,10 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"reflect"
 	"testing"
 
+	"github.com/project-kgo/kim-gate/internal/data"
 	kimgatev1 "github.com/project-kgo/kim-gate/proto/kimgate/v1"
 	"github.com/project-kgo/signalg"
 	"google.golang.org/grpc/codes"
@@ -43,6 +45,13 @@ func TestGatewayServiceValidation(t *testing.T) {
 				return err
 			},
 		},
+		{
+			name: "empty user id for user connections",
+			call: func() error {
+				_, err := service.GetUserConnections(context.Background(), &kimgatev1.GetUserConnectionsRequest{})
+				return err
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -67,7 +76,62 @@ func TestGatewayServiceBroadcastMapsSendResult(t *testing.T) {
 	}
 }
 
+func TestGatewayServiceSupportsAppGroupAddressing(t *testing.T) {
+	service := newTestService(t)
+
+	groupResp, err := service.SendToGroup(context.Background(), &kimgatev1.SendToGroupRequest{
+		Group:  "app:app1",
+		Method: "server.push",
+	})
+	if err != nil {
+		t.Fatalf("SendToGroup returned error: %v", err)
+	}
+	if groupResp.Matched != 0 || groupResp.Sent != 0 || groupResp.Failed != 0 || groupResp.Error != "" {
+		t.Fatalf("unexpected group response: %+v", groupResp)
+	}
+
+	onlineResp, err := service.GetOnline(context.Background(), &kimgatev1.GetOnlineRequest{
+		Group: "app:app1",
+	})
+	if err != nil {
+		t.Fatalf("GetOnline returned error: %v", err)
+	}
+	if onlineResp.Online != 0 {
+		t.Fatalf("online = %d, want 0", onlineResp.Online)
+	}
+}
+
+func TestGatewayServiceGetUserConnections(t *testing.T) {
+	store := &stubUserConnectionStore{
+		connections: []data.UserConnectionRoute{
+			{ConnectionID: "conn-2", ServerID: "server-b"},
+			{ConnectionID: "conn-1", ServerID: "server-a"},
+		},
+	}
+	service := newTestServiceWithStore(t, store)
+
+	resp, err := service.GetUserConnections(context.Background(), &kimgatev1.GetUserConnectionsRequest{UserId: "user-1"})
+	if err != nil {
+		t.Fatalf("GetUserConnections returned error: %v", err)
+	}
+	if store.userID != "user-1" {
+		t.Fatalf("store userID = %q, want %q", store.userID, "user-1")
+	}
+	want := []*kimgatev1.UserConnection{
+		{ConnectionId: "conn-2", ServerId: "server-b"},
+		{ConnectionId: "conn-1", ServerId: "server-a"},
+	}
+	if !reflect.DeepEqual(resp.Connections, want) {
+		t.Fatalf("connections = %+v, want %+v", resp.Connections, want)
+	}
+}
+
 func newTestService(t *testing.T) *GatewayService {
+	t.Helper()
+	return newTestServiceWithStore(t, &stubUserConnectionStore{})
+}
+
+func newTestServiceWithStore(t *testing.T, store UserConnectionStore) *GatewayService {
 	t.Helper()
 	handler, err := signalg.NewHandler(signalg.Config{
 		Logger:        slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -78,7 +142,7 @@ func newTestService(t *testing.T) *GatewayService {
 	if err != nil {
 		t.Fatalf("NewHandler returned error: %v", err)
 	}
-	service, err := NewGatewayService(handler)
+	service, err := NewGatewayService(handler, store)
 	if err != nil {
 		t.Fatalf("NewGatewayService returned error: %v", err)
 	}
@@ -92,3 +156,14 @@ func (h *testHub) OnConnected(context.Context, *signalg.Connection) error {
 }
 
 func (h *testHub) OnDisconnected(context.Context, *signalg.Connection, error) {}
+
+type stubUserConnectionStore struct {
+	userID      string
+	connections []data.UserConnectionRoute
+	err         error
+}
+
+func (s *stubUserConnectionStore) ListUserConnections(_ context.Context, userID string) ([]data.UserConnectionRoute, error) {
+	s.userID = userID
+	return append([]data.UserConnectionRoute(nil), s.connections...), s.err
+}

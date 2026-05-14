@@ -54,6 +54,12 @@ func ExtractToken(r *http.Request) string {
 	if r == nil {
 		return ""
 	}
+	if token := strings.TrimSpace(r.Header.Get("Authorization")); token != "" {
+		if strings.HasPrefix(token, "Bearer ") {
+			return token[7:]
+		}
+		return token
+	}
 	if token := strings.TrimSpace(r.Header.Get("X-Token")); token != "" {
 		return token
 	}

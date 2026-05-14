@@ -40,7 +40,7 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	}
 	hertz := gateway.NewHertzServer(cfg, logger, managedHandler)
 	handler := gateway.SignalGHandler(managedHandler)
-	gatewayService, err := rpc.NewGatewayService(handler)
+	gatewayService, err := rpc.NewGatewayService(handler, userRouteStore)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -119,6 +120,33 @@ func TestUserRouteStoreListUserServerIDsDeduplicates(t *testing.T) {
 	want := []string{"server-a", "server-b"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ListUserServerIDs = %v, want %v", got, want)
+	}
+}
+
+func TestUserRouteStoreListUserConnections(t *testing.T) {
+	client := &fakeUserRouteRedis{
+		hashValues: map[string]string{
+			"conn-2": "server-b",
+			"conn-1": "server-a",
+			" ":      "server-c",
+			"conn-3": " ",
+		},
+	}
+	store, err := NewUserRouteStoreWithRedis(client, time.Minute, "server-x", nil)
+	if err != nil {
+		t.Fatalf("NewUserRouteStoreWithRedis returned error: %v", err)
+	}
+
+	got, err := store.ListUserConnections(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("ListUserConnections returned error: %v", err)
+	}
+	want := []UserConnectionRoute{
+		{ConnectionID: "conn-1", ServerID: "server-a"},
+		{ConnectionID: "conn-2", ServerID: "server-b"},
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("ListUserConnections = %v, want %v", got, want)
 	}
 }
 

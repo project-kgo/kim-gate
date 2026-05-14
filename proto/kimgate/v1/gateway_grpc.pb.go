@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GatewayService_SendToUsers_FullMethodName = "/kimgate.v1.GatewayService/SendToUsers"
-	GatewayService_SendToGroup_FullMethodName = "/kimgate.v1.GatewayService/SendToGroup"
-	GatewayService_Broadcast_FullMethodName   = "/kimgate.v1.GatewayService/Broadcast"
-	GatewayService_GetOnline_FullMethodName   = "/kimgate.v1.GatewayService/GetOnline"
+	GatewayService_SendToUsers_FullMethodName        = "/kimgate.v1.GatewayService/SendToUsers"
+	GatewayService_SendToGroup_FullMethodName        = "/kimgate.v1.GatewayService/SendToGroup"
+	GatewayService_Broadcast_FullMethodName          = "/kimgate.v1.GatewayService/Broadcast"
+	GatewayService_GetOnline_FullMethodName          = "/kimgate.v1.GatewayService/GetOnline"
+	GatewayService_GetUserConnections_FullMethodName = "/kimgate.v1.GatewayService/GetUserConnections"
 )
 
 // GatewayServiceClient is the client API for GatewayService service.
@@ -33,6 +34,7 @@ type GatewayServiceClient interface {
 	SendToGroup(ctx context.Context, in *SendToGroupRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	GetOnline(ctx context.Context, in *GetOnlineRequest, opts ...grpc.CallOption) (*GetOnlineResponse, error)
+	GetUserConnections(ctx context.Context, in *GetUserConnectionsRequest, opts ...grpc.CallOption) (*GetUserConnectionsResponse, error)
 }
 
 type gatewayServiceClient struct {
@@ -83,6 +85,16 @@ func (c *gatewayServiceClient) GetOnline(ctx context.Context, in *GetOnlineReque
 	return out, nil
 }
 
+func (c *gatewayServiceClient) GetUserConnections(ctx context.Context, in *GetUserConnectionsRequest, opts ...grpc.CallOption) (*GetUserConnectionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserConnectionsResponse)
+	err := c.cc.Invoke(ctx, GatewayService_GetUserConnections_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GatewayServiceServer is the server API for GatewayService service.
 // All implementations must embed UnimplementedGatewayServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type GatewayServiceServer interface {
 	SendToGroup(context.Context, *SendToGroupRequest) (*SendResponse, error)
 	Broadcast(context.Context, *BroadcastRequest) (*SendResponse, error)
 	GetOnline(context.Context, *GetOnlineRequest) (*GetOnlineResponse, error)
+	GetUserConnections(context.Context, *GetUserConnectionsRequest) (*GetUserConnectionsResponse, error)
 	mustEmbedUnimplementedGatewayServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedGatewayServiceServer) Broadcast(context.Context, *BroadcastRe
 }
 func (UnimplementedGatewayServiceServer) GetOnline(context.Context, *GetOnlineRequest) (*GetOnlineResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOnline not implemented")
+}
+func (UnimplementedGatewayServiceServer) GetUserConnections(context.Context, *GetUserConnectionsRequest) (*GetUserConnectionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserConnections not implemented")
 }
 func (UnimplementedGatewayServiceServer) mustEmbedUnimplementedGatewayServiceServer() {}
 func (UnimplementedGatewayServiceServer) testEmbeddedByValue()                        {}
@@ -206,6 +222,24 @@ func _GatewayService_GetOnline_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GatewayService_GetUserConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserConnectionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayServiceServer).GetUserConnections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GatewayService_GetUserConnections_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayServiceServer).GetUserConnections(ctx, req.(*GetUserConnectionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GatewayService_ServiceDesc is the grpc.ServiceDesc for GatewayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var GatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetOnline",
 			Handler:    _GatewayService_GetOnline_Handler,
+		},
+		{
+			MethodName: "GetUserConnections",
+			Handler:    _GatewayService_GetUserConnections_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

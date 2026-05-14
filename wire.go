@@ -26,6 +26,7 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 		gateway.ServerIDString,
 		data.New,
 		data.NewUserRouteStore,
+		wire.Bind(new(rpc.UserConnectionStore), new(*data.UserRouteStore)),
 		gateway.NewSignalGHandler,
 		gateway.SignalGHandler,
 		gateway.NewHertzServer,

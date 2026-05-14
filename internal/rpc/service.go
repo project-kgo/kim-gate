@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/project-kgo/kim-gate/internal/data"
 	kimgatev1 "github.com/project-kgo/kim-gate/proto/kimgate/v1"
 	"github.com/project-kgo/signalg"
 	"google.golang.org/grpc/codes"
@@ -12,16 +13,27 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-type GatewayService struct {
-	kimgatev1.UnimplementedGatewayServiceServer
-	handler *signalg.Handler
+type UserConnectionStore interface {
+	ListUserConnections(ctx context.Context, userID string) ([]data.UserConnectionRoute, error)
 }
 
-func NewGatewayService(handler *signalg.Handler) (*GatewayService, error) {
+type GatewayService struct {
+	kimgatev1.UnimplementedGatewayServiceServer
+	handler         *signalg.Handler
+	connectionStore UserConnectionStore
+}
+
+func NewGatewayService(handler *signalg.Handler, connectionStore UserConnectionStore) (*GatewayService, error) {
 	if handler == nil {
 		return nil, errors.New("signalg handler is required")
 	}
-	return &GatewayService{handler: handler}, nil
+	if connectionStore == nil {
+		return nil, errors.New("user connection store is required")
+	}
+	return &GatewayService{
+		handler:         handler,
+		connectionStore: connectionStore,
+	}, nil
 }
 
 func (s *GatewayService) SendToUsers(ctx context.Context, req *kimgatev1.SendToUsersRequest) (*kimgatev1.SendResponse, error) {
@@ -78,6 +90,33 @@ func (s *GatewayService) GetOnline(_ context.Context, req *kimgatev1.GetOnlineRe
 		return &kimgatev1.GetOnlineResponse{Online: int32(s.handler.GroupOnline(group))}, nil
 	}
 	return &kimgatev1.GetOnlineResponse{Online: int32(s.handler.Online())}, nil
+}
+
+func (s *GatewayService) GetUserConnections(ctx context.Context, req *kimgatev1.GetUserConnectionsRequest) (*kimgatev1.GetUserConnectionsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+
+	userID := strings.TrimSpace(req.UserId)
+	if userID == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	routes, err := s.connectionStore.ListUserConnections(ctx, userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list user connections: %v", err)
+	}
+
+	resp := &kimgatev1.GetUserConnectionsResponse{
+		Connections: make([]*kimgatev1.UserConnection, 0, len(routes)),
+	}
+	for _, route := range routes {
+		resp.Connections = append(resp.Connections, &kimgatev1.UserConnection{
+			ConnectionId: route.ConnectionID,
+			ServerId:     route.ServerID,
+		})
+	}
+	return resp, nil
 }
 
 func validateMethod(method string) error {

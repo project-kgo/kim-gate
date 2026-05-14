@@ -20,15 +20,20 @@ import (
 var ErrMethodNotImplemented = errors.New("method not implemented")
 
 type Hub struct {
-	logger     *slog.Logger
-	serverID   string
-	userRoutes userRouteRegistrar
+	logger      *slog.Logger
+	serverID    string
+	userRoutes  userRouteRegistrar
+	groupJoiner groupJoiner
 }
 
 type userRouteRegistrar interface {
 	RegisterConnection(ctx context.Context, userID, connectionID string) error
 	RefreshConnection(ctx context.Context, userID, connectionID string) error
 	BucketOf(userID string) int
+}
+
+type groupJoiner interface {
+	AddToGroup(conn *signalg.Connection, group string) error
 }
 
 type ServerID string
@@ -46,7 +51,8 @@ func ServerIDString(id ServerID) string {
 }
 
 func NewSignalGHandler(cfg config.Config, logger *slog.Logger, userProvider signalg.UserProvider, userRoutes *data.UserRouteStore, serverID ServerID) (*signalgHz.ManagedHandler, error) {
-	return signalgHz.NewHandler(signalg.Config{
+	var groupHandler *signalg.Handler
+	managedHandler, err := signalgHz.NewHandler(signalg.Config{
 		Path:          cfg.WebSocketPath,
 		Logger:        logger,
 		UserProvider:  userProvider,
@@ -55,11 +61,17 @@ func NewSignalGHandler(cfg config.Config, logger *slog.Logger, userProvider sign
 		PingTimeout:   cfg.PingTimeout,
 	}, func(*signalg.Connection) (signalg.Hub, error) {
 		return &Hub{
-			logger:     logger,
-			serverID:   string(serverID),
-			userRoutes: userRoutes,
+			logger:      logger,
+			serverID:    string(serverID),
+			userRoutes:  userRoutes,
+			groupJoiner: groupHandler,
 		}, nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	groupHandler = managedHandler.SignalGHandler()
+	return managedHandler, nil
 }
 
 func SignalGHandler(handler *signalgHz.ManagedHandler) *signalg.Handler {
@@ -94,6 +106,17 @@ func NewHertzServer(cfg config.Config, logger *slog.Logger, wsHandler *signalgHz
 }
 
 func (h *Hub) OnConnected(_ context.Context, conn *signalg.Connection) error {
+	group, appID, err := ParseAppGroup(conn.UserID)
+	if err != nil {
+		h.log().Error("invalid websocket user id",
+			slog.String("connection_id", conn.ID),
+			slog.String("user_id", conn.UserID),
+			slog.String("server_id", h.serverID),
+			slog.Any("error", err),
+		)
+		return err
+	}
+
 	bucket := 0
 	if h.userRoutes != nil {
 		bucket = h.userRoutes.BucketOf(conn.UserID)
@@ -107,9 +130,26 @@ func (h *Hub) OnConnected(_ context.Context, conn *signalg.Connection) error {
 			)
 		}
 	}
+
+	if h.groupJoiner != nil {
+		if err := h.groupJoiner.AddToGroup(conn, group); err != nil {
+			h.log().Error("failed to join websocket app group",
+				slog.String("connection_id", conn.ID),
+				slog.String("user_id", conn.UserID),
+				slog.String("app_id", appID),
+				slog.String("group", group),
+				slog.String("server_id", h.serverID),
+				slog.Any("error", err),
+			)
+			return err
+		}
+	}
+
 	h.log().Info("websocket connected",
 		slog.String("connection_id", conn.ID),
 		slog.String("user_id", conn.UserID),
+		slog.String("app_id", appID),
+		slog.String("group", group),
 		slog.String("server_id", h.serverID),
 		slog.Int("bucket", bucket),
 		slog.String("remote_addr", remoteAddr(conn)),
