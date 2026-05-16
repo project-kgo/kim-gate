@@ -159,26 +159,38 @@ func TestUserRouteStorePollExpiredUsers(t *testing.T) {
 		t.Fatalf("NewUserRouteStoreWithRedis returned error: %v", err)
 	}
 
-	var got []string
-	err = store.PollExpiredUsers(context.Background(), 3, 20, time.UnixMilli(9_999), func(_ context.Context, userID string) error {
-		got = append(got, userID)
+	var got [][]string
+	err = store.PollExpiredUsers(context.Background(), 3, 20, time.UnixMilli(9_999), func(_ context.Context, userIDs []string) error {
+		got = append(got, append([]string(nil), userIDs...))
 		return nil
 	})
 	if err != nil {
 		t.Fatalf("PollExpiredUsers returned error: %v", err)
 	}
-	if client.zrangeKey != userExpireKey(3) {
-		t.Fatalf("zrange key = %q, want %q", client.zrangeKey, userExpireKey(3))
+	if client.pollKey != userExpireKey(3) {
+		t.Fatalf("poll key = %q, want %q", client.pollKey, userExpireKey(3))
 	}
-	if client.zrangeMax != 9_999 {
-		t.Fatalf("zrange max = %d, want %d", client.zrangeMax, 9_999)
+	if client.pollMax != 9_999 {
+		t.Fatalf("poll max = %d, want %d", client.pollMax, 9_999)
 	}
-	if client.zrangeLimit != 20 {
-		t.Fatalf("zrange limit = %d, want %d", client.zrangeLimit, 20)
+	if client.pollLimit != 20 {
+		t.Fatalf("poll limit = %d, want %d", client.pollLimit, 20)
 	}
-	want := []string{"user-1", "user-2"}
+	want := [][]string{{"user-1", "user-2"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("callback users = %v, want %v", got, want)
+	}
+
+	got = nil
+	err = store.PollExpiredUsers(context.Background(), 3, 20, time.UnixMilli(9_999), func(_ context.Context, userIDs []string) error {
+		got = append(got, append([]string(nil), userIDs...))
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("second PollExpiredUsers returned error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("second callback users = %v, want none", got)
 	}
 }
 
@@ -192,7 +204,7 @@ func TestUserRouteStorePropagatesCallbackError(t *testing.T) {
 	}
 
 	wantErr := errors.New("stop")
-	err = store.PollExpiredUsers(context.Background(), 0, 1, time.Now(), func(context.Context, string) error {
+	err = store.PollExpiredUsers(context.Background(), 0, 1, time.Now(), func(context.Context, []string) error {
 		return wantErr
 	})
 	if !errors.Is(err, wantErr) {
@@ -229,10 +241,10 @@ type fakeUserRouteRedis struct {
 	hashErr    error
 
 	expiredUserIDs []string
-	zrangeKey      string
-	zrangeMax      int64
-	zrangeLimit    int
-	zrangeErr      error
+	pollKey        string
+	pollMax        int64
+	pollLimit      int
+	pollErr        error
 }
 
 func (f *fakeUserRouteRedis) RunScript(_ context.Context, script *redis.Script, keys []string, args ...interface{}) error {
@@ -246,9 +258,14 @@ func (f *fakeUserRouteRedis) HGetAll(context.Context, string) (map[string]string
 	return f.hashValues, f.hashErr
 }
 
-func (f *fakeUserRouteRedis) ZRangeByScore(_ context.Context, key string, max int64, limit int) ([]string, error) {
-	f.zrangeKey = key
-	f.zrangeMax = max
-	f.zrangeLimit = limit
-	return append([]string(nil), f.expiredUserIDs...), f.zrangeErr
+func (f *fakeUserRouteRedis) PollExpiredUsers(_ context.Context, key string, max int64, limit int) ([]string, error) {
+	f.pollKey = key
+	f.pollMax = max
+	f.pollLimit = limit
+	if f.pollErr != nil {
+		return nil, f.pollErr
+	}
+	out := append([]string(nil), f.expiredUserIDs...)
+	f.expiredUserIDs = nil
+	return out, nil
 }

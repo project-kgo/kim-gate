@@ -170,7 +170,7 @@ func (h *Hub) OnDisconnected(_ context.Context, conn *signalg.Connection, err er
 	h.log().LogAttrs(context.Background(), slog.LevelInfo, "websocket disconnected", attrs...)
 }
 
-func (h *Hub) OnPing(ctx context.Context, conn *signalg.Connection) error {
+func (h *Hub) OnPing(ctx context.Context, conn *signalg.Connection) {
 	if h.userRoutes != nil {
 		bucket := h.userRoutes.BucketOf(conn.UserID)
 		if err := h.userRoutes.RefreshConnection(ctx, conn.UserID, conn.ID); err != nil {
@@ -189,7 +189,6 @@ func (h *Hub) OnPing(ctx context.Context, conn *signalg.Connection) error {
 		slog.String("server_id", h.serverID),
 		slog.String("remote_addr", remoteAddr(conn)),
 	)
-	return nil
 }
 
 // func (h *Hub) OnMessage(ctx context.Context, conn *signalg.Connection, msg signalg.Message) error {

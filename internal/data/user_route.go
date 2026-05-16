@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,10 +33,29 @@ redis.call("ZADD", KEYS[2], expireScore, userID)
 return 1
 `)
 
+var pollExpiredUsersScript = redis.NewScript(`
+local limit = tonumber(ARGV[1])
+local maxScore = tonumber(ARGV[2])
+
+local userIDs
+if limit > 0 then
+	userIDs = redis.call("ZRANGE", KEYS[1], "-inf", maxScore, "BYSCORE", "LIMIT", 0, limit)
+else
+	userIDs = redis.call("ZRANGE", KEYS[1], "-inf", maxScore, "BYSCORE")
+end
+
+local count = #userIDs
+if count > 0 then
+	redis.call("ZREMRANGEBYRANK", KEYS[1], 0, count - 1)
+end
+
+return userIDs
+`)
+
 type userRouteRedis interface {
 	RunScript(ctx context.Context, script *redis.Script, keys []string, args ...interface{}) error
 	HGetAll(ctx context.Context, key string) (map[string]string, error)
-	ZRangeByScore(ctx context.Context, key string, max int64, limit int) ([]string, error)
+	PollExpiredUsers(ctx context.Context, key string, max int64, limit int) ([]string, error)
 }
 
 type redisUserRouteClient struct {
@@ -52,17 +70,8 @@ func (c redisUserRouteClient) HGetAll(ctx context.Context, key string) (map[stri
 	return c.client.HGetAll(ctx, key).Result()
 }
 
-func (c redisUserRouteClient) ZRangeByScore(ctx context.Context, key string, max int64, limit int) ([]string, error) {
-	args := redis.ZRangeArgs{
-		Key:     key,
-		Start:   "-inf",
-		Stop:    strconv.FormatInt(max, 10),
-		ByScore: true,
-	}
-	if limit > 0 {
-		args.Count = int64(limit)
-	}
-	return c.client.ZRangeArgs(ctx, args).Result()
+func (c redisUserRouteClient) PollExpiredUsers(ctx context.Context, key string, max int64, limit int) ([]string, error) {
+	return pollExpiredUsersScript.Run(ctx, c.client, []string{key}, limit, max).StringSlice()
 }
 
 type UserRouteStore struct {
@@ -193,7 +202,7 @@ func (s *UserRouteStore) ListUserConnections(ctx context.Context, userID string)
 	return connections, nil
 }
 
-func (s *UserRouteStore) PollExpiredUsers(ctx context.Context, bucket int, limit int, now time.Time, fn func(context.Context, string) error) error {
+func (s *UserRouteStore) PollExpiredUsers(ctx context.Context, bucket int, limit int, now time.Time, fn func(context.Context, []string) error) error {
 	if fn == nil {
 		return errors.New("callback is required")
 	}
@@ -204,20 +213,22 @@ func (s *UserRouteStore) PollExpiredUsers(ctx context.Context, bucket int, limit
 		now = s.now()
 	}
 
-	userIDs, err := s.redis.ZRangeByScore(ctx, userExpireKey(bucket), now.UnixMilli(), limit)
+	userIDs, err := s.redis.PollExpiredUsers(ctx, userExpireKey(bucket), now.UnixMilli(), limit)
 	if err != nil {
 		return fmt.Errorf("load expired users: %w", err)
 	}
+	filtered := make([]string, 0, len(userIDs))
 	for _, userID := range userIDs {
 		userID = strings.TrimSpace(userID)
 		if userID == "" {
 			continue
 		}
-		if err := fn(ctx, userID); err != nil {
-			return err
-		}
+		filtered = append(filtered, userID)
 	}
-	return nil
+	if len(filtered) == 0 {
+		return nil
+	}
+	return fn(ctx, filtered)
 }
 
 func (s *UserRouteStore) BucketOf(userID string) int {
@@ -243,6 +254,10 @@ func (s *UserRouteStore) registerScriptArgs(userID, connectionID string) ([]stri
 
 func bucketOf(userID string) int {
 	return int(xxhash.Sum64String(strings.TrimSpace(userID)) % userRouteBucketCount)
+}
+
+func UserRouteBucketCount() int {
+	return userRouteBucketCount
 }
 
 func userRouteKey(bucket int, userID string) string {

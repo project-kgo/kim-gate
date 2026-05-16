@@ -57,6 +57,6 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	appApp := app.New(cfg, logger, hertz, server, dataData, subscriber)
+	appApp := app.New(cfg, logger, hertz, server, dataData, subscriber, userRouteStore)
 	return appApp, nil
 }

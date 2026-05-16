@@ -14,9 +14,9 @@ func TestHubOnConnectedRegistersUserRoute(t *testing.T) {
 	routes := &fakeUserRoutes{bucket: 7}
 	joiner := &fakeGroupJoiner{}
 	hub := &Hub{
-		logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
-		serverID:   "server-1",
-		userRoutes: routes,
+		logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		serverID:    "server-1",
+		userRoutes:  routes,
 		groupJoiner: joiner,
 	}
 
@@ -110,13 +110,10 @@ func TestHubOnPingRefreshesUserRoute(t *testing.T) {
 		userRoutes: routes,
 	}
 
-	err := hub.OnPing(context.Background(), &signalg.Connection{
+	hub.OnPing(context.Background(), &signalg.Connection{
 		ID:     "conn-9",
 		UserID: "user-9",
 	})
-	if err != nil {
-		t.Fatalf("OnPing returned error: %v", err)
-	}
 	if routes.refreshedUserID != "user-9" || routes.refreshedConnID != "conn-9" {
 		t.Fatalf("refreshed route = (%q, %q)", routes.refreshedUserID, routes.refreshedConnID)
 	}
