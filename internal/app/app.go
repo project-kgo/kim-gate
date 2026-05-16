@@ -46,7 +46,7 @@ func (a *App) Start() error {
 		a.pushCancel = cancel
 		go func() {
 			if a.logger != nil {
-				a.logger.Info("redis push subscriber started", slog.String("channel", a.cfg.RedisPushChannel))
+				a.logger.Info("redis push subscriber started", slog.Any("channels", a.push.Channels()))
 			}
 			if err := a.push.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
 				a.done <- err

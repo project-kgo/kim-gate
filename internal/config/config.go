@@ -20,6 +20,9 @@ const (
 	DefaultRedisDSN         = "redis://localhost:6379/0"
 	DefaultRedisRouteTTL    = 1 * time.Minute
 	DefaultRedisPushChannel = "kim:gateway:push"
+	pushUsersSuffix         = ":users"
+	pushGroupSuffix         = ":group"
+	pushBroadcastSuffix     = ":broadcast"
 )
 
 type Config struct {
@@ -33,6 +36,9 @@ type Config struct {
 	RedisDSN         string
 	RedisRouteTTL    time.Duration
 	RedisPushChannel string
+	RedisPushUsersChannel     string
+	RedisPushGroupChannel     string
+	RedisPushBroadcastChannel string
 }
 
 func Load(args []string) (Config, error) {
@@ -50,7 +56,10 @@ func Load(args []string) (Config, error) {
 	fs.Duration("ping-timeout", 0, "signalg ping timeout")
 	fs.String("redis-dsn", "", "redis connection dsn")
 	fs.Duration("redis-route-ttl", 0, "redis user route ttl")
-	fs.String("redis-push-channel", "", "redis push pub/sub channel")
+	fs.String("redis-push-channel", "", "redis push pub/sub channel prefix")
+	fs.String("redis-push-users-channel", "", "redis users push pub/sub channel")
+	fs.String("redis-push-group-channel", "", "redis group push pub/sub channel")
+	fs.String("redis-push-broadcast-channel", "", "redis broadcast push pub/sub channel")
 	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
 		return Config{}, err
 	}
@@ -68,9 +77,12 @@ func Load(args []string) (Config, error) {
 		ShutdownTimeout:  v.GetDuration("shutdown.timeout"),
 		PingInterval:     v.GetDuration("signalg.ping_interval"),
 		PingTimeout:      v.GetDuration("signalg.ping_timeout"),
-		RedisDSN:         v.GetString("redis.dsn"),
-		RedisRouteTTL:    v.GetDuration("redis.route_ttl"),
-		RedisPushChannel: v.GetString("redis.push_channel"),
+		RedisDSN:                  v.GetString("redis.dsn"),
+		RedisRouteTTL:             v.GetDuration("redis.route_ttl"),
+		RedisPushChannel:          v.GetString("redis.push_channel"),
+		RedisPushUsersChannel:     v.GetString("redis.push_users_channel"),
+		RedisPushGroupChannel:     v.GetString("redis.push_group_channel"),
+		RedisPushBroadcastChannel: v.GetString("redis.push_broadcast_channel"),
 	}
 
 	cfg.normalize()
@@ -88,9 +100,12 @@ func Defaults() Config {
 		ShutdownTimeout:  DefaultShutdownTimeout,
 		PingInterval:     DefaultPingInterval,
 		PingTimeout:      DefaultPingTimeout,
-		RedisDSN:         DefaultRedisDSN,
-		RedisRouteTTL:    DefaultRedisRouteTTL,
-		RedisPushChannel: DefaultRedisPushChannel,
+		RedisDSN:                  DefaultRedisDSN,
+		RedisRouteTTL:             DefaultRedisRouteTTL,
+		RedisPushChannel:          DefaultRedisPushChannel,
+		RedisPushUsersChannel:     DefaultRedisPushChannel + pushUsersSuffix,
+		RedisPushGroupChannel:     DefaultRedisPushChannel + pushGroupSuffix,
+		RedisPushBroadcastChannel: DefaultRedisPushChannel + pushBroadcastSuffix,
 	}
 }
 
@@ -105,6 +120,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("redis.dsn", defaults.RedisDSN)
 	v.SetDefault("redis.route_ttl", defaults.RedisRouteTTL.String())
 	v.SetDefault("redis.push_channel", defaults.RedisPushChannel)
+	v.SetDefault("redis.push_users_channel", defaults.RedisPushUsersChannel)
+	v.SetDefault("redis.push_group_channel", defaults.RedisPushGroupChannel)
+	v.SetDefault("redis.push_broadcast_channel", defaults.RedisPushBroadcastChannel)
 }
 
 func bindEnv(v *viper.Viper) {
@@ -120,6 +138,9 @@ func bindEnv(v *viper.Viper) {
 	must(v.BindEnv("redis.dsn", "KIM_GATE_REDIS_DSN"))
 	must(v.BindEnv("redis.route_ttl", "KIM_GATE_REDIS_ROUTE_TTL"))
 	must(v.BindEnv("redis.push_channel", "KIM_GATE_REDIS_PUSH_CHANNEL"))
+	must(v.BindEnv("redis.push_users_channel", "KIM_GATE_REDIS_PUSH_USERS_CHANNEL"))
+	must(v.BindEnv("redis.push_group_channel", "KIM_GATE_REDIS_PUSH_GROUP_CHANNEL"))
+	must(v.BindEnv("redis.push_broadcast_channel", "KIM_GATE_REDIS_PUSH_BROADCAST_CHANNEL"))
 }
 
 func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
@@ -130,9 +151,12 @@ func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 		"shutdown.timeout":      "shutdown-timeout",
 		"signalg.ping_interval": "ping-interval",
 		"signalg.ping_timeout":  "ping-timeout",
-		"redis.dsn":             "redis-dsn",
-		"redis.route_ttl":       "redis-route-ttl",
-		"redis.push_channel":    "redis-push-channel",
+		"redis.dsn":                    "redis-dsn",
+		"redis.route_ttl":              "redis-route-ttl",
+		"redis.push_channel":           "redis-push-channel",
+		"redis.push_users_channel":     "redis-push-users-channel",
+		"redis.push_group_channel":     "redis-push-group-channel",
+		"redis.push_broadcast_channel": "redis-push-broadcast-channel",
 	}
 	for key, name := range bindings {
 		if err := v.BindPFlag(key, fs.Lookup(name)); err != nil {
@@ -166,6 +190,10 @@ func (c *Config) normalize() {
 	c.GRPCSocket = strings.TrimSpace(c.GRPCSocket)
 	c.RedisDSN = strings.TrimSpace(c.RedisDSN)
 	c.RedisPushChannel = strings.TrimSpace(c.RedisPushChannel)
+	c.RedisPushUsersChannel = strings.TrimSpace(c.RedisPushUsersChannel)
+	c.RedisPushGroupChannel = strings.TrimSpace(c.RedisPushGroupChannel)
+	c.RedisPushBroadcastChannel = strings.TrimSpace(c.RedisPushBroadcastChannel)
+	c.normalizePushChannels()
 }
 
 func (c Config) Validate() error {
@@ -196,7 +224,36 @@ func (c Config) Validate() error {
 	if c.RedisPushChannel == "" {
 		return errors.New("redis push channel is required")
 	}
+	if c.RedisPushUsersChannel == "" {
+		return errors.New("redis users push channel is required")
+	}
+	if c.RedisPushGroupChannel == "" {
+		return errors.New("redis group push channel is required")
+	}
+	if c.RedisPushBroadcastChannel == "" {
+		return errors.New("redis broadcast push channel is required")
+	}
 	return nil
+}
+
+func (c *Config) normalizePushChannels() {
+	if c == nil {
+		return
+	}
+	base := strings.TrimSpace(c.RedisPushChannel)
+	if base == "" {
+		base = DefaultRedisPushChannel
+		c.RedisPushChannel = base
+	}
+	if c.RedisPushUsersChannel == "" {
+		c.RedisPushUsersChannel = base + pushUsersSuffix
+	}
+	if c.RedisPushGroupChannel == "" {
+		c.RedisPushGroupChannel = base + pushGroupSuffix
+	}
+	if c.RedisPushBroadcastChannel == "" {
+		c.RedisPushBroadcastChannel = base + pushBroadcastSuffix
+	}
 }
 
 func normalizePath(path string) string {

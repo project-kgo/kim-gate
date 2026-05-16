@@ -64,6 +64,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/project-kgo/signalg v0.0.0-20260511145829-99fe8c85f1a3 h1:6SC6aguJ2fKBB0lGtFDY0PD3mFRS9uH7ENg+YNJG66o=
 github.com/project-kgo/signalg v0.0.0-20260511145829-99fe8c85f1a3/go.mod h1:X7dzfM+v2FTS4QC/2xnaZa2WDsFbc+//U6TgY1rgZTo=
+github.com/project-kgo/signalg v0.0.0-20260515095318-8c1420c1b33a h1:rnj+YcXpTfWAqrhgUAJFRyGUA60F1jsNJHBP8M+Wa4U=
+github.com/project-kgo/signalg v0.0.0-20260515095318-8c1420c1b33a/go.mod h1:X7dzfM+v2FTS4QC/2xnaZa2WDsFbc+//U6TgY1rgZTo=
 github.com/redis/go-redis/v9 v9.19.0 h1:XPVaaPSnG6RhYf7p+rmSa9zZfeVAnWsH5h3lxthOm/k=
 github.com/redis/go-redis/v9 v9.19.0/go.mod h1:v/M13XI1PVCDcm01VtPFOADfZtHf8YW3baQf57KlIkA=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=

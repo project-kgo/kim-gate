@@ -38,32 +38,101 @@ func (c redisPushClient) Subscribe(ctx context.Context, channels ...string) push
 }
 
 type SignalSender interface {
-	SendUsers(ctx context.Context, userIDs []string, method string, body any) signalg.SendResult
-	SendGroup(ctx context.Context, group string, method string, body any) signalg.SendResult
-	SendAll(ctx context.Context, method string, body any) signalg.SendResult
+	SendUsersRaw(ctx context.Context, userIDs []string, method string, payload []byte) signalg.SendResult
+	SendGroupRaw(ctx context.Context, group string, method string, payload []byte) signalg.SendResult
+	SendAllRaw(ctx context.Context, method string, payload []byte) signalg.SendResult
+}
+
+type pushChannels struct {
+	users     string
+	group     string
+	broadcast string
+}
+
+func newPushChannels(cfg config.Config) (pushChannels, error) {
+	channels := pushChannels{
+		users:     strings.TrimSpace(cfg.RedisPushUsersChannel),
+		group:     strings.TrimSpace(cfg.RedisPushGroupChannel),
+		broadcast: strings.TrimSpace(cfg.RedisPushBroadcastChannel),
+	}
+	return normalizePushChannels(channels)
+}
+
+func normalizePushChannels(channels pushChannels) (pushChannels, error) {
+	channels.users = strings.TrimSpace(channels.users)
+	channels.group = strings.TrimSpace(channels.group)
+	channels.broadcast = strings.TrimSpace(channels.broadcast)
+	if channels.users == "" {
+		return pushChannels{}, errors.New("users push channel is required")
+	}
+	if channels.group == "" {
+		return pushChannels{}, errors.New("group push channel is required")
+	}
+	if channels.broadcast == "" {
+		return pushChannels{}, errors.New("broadcast push channel is required")
+	}
+	return channels, nil
+}
+
+func (c pushChannels) list() []string {
+	return compactStrings([]string{c.users, c.group, c.broadcast})
+}
+
+func (c pushChannels) uniqueList() []string {
+	channels := c.list()
+	if len(channels) <= 1 {
+		return channels
+	}
+	out := make([]string, 0, len(channels))
+	seen := make(map[string]struct{}, len(channels))
+	for _, channel := range channels {
+		if _, ok := seen[channel]; ok {
+			continue
+		}
+		seen[channel] = struct{}{}
+		out = append(out, channel)
+	}
+	return out
+}
+
+func (c pushChannels) channelForTarget(target kimgatev1.PushTarget) (string, error) {
+	switch target {
+	case kimgatev1.PushTarget_PUSH_TARGET_USERS:
+		return c.users, nil
+	case kimgatev1.PushTarget_PUSH_TARGET_GROUP:
+		return c.group, nil
+	case kimgatev1.PushTarget_PUSH_TARGET_BROADCAST:
+		return c.broadcast, nil
+	default:
+		return "", fmt.Errorf("unknown push target: %s", target)
+	}
 }
 
 type Publisher struct {
-	redis   pushRedis
-	channel string
+	redis    pushRedis
+	channels pushChannels
 }
 
 func NewPublisher(cfg config.Config, data *data.Data) (*Publisher, error) {
 	if data == nil || data.Redis == nil {
 		return nil, errors.New("redis client is required")
 	}
-	return NewPublisherWithRedis(redisPushClient{client: data.Redis}, cfg.RedisPushChannel)
+	channels, err := newPushChannels(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return NewPublisherWithRedis(redisPushClient{client: data.Redis}, channels)
 }
 
-func NewPublisherWithRedis(redisClient pushRedis, channel string) (*Publisher, error) {
+func NewPublisherWithRedis(redisClient pushRedis, channels pushChannels) (*Publisher, error) {
 	if redisClient == nil {
 		return nil, errors.New("push redis client is required")
 	}
-	channel = strings.TrimSpace(channel)
-	if channel == "" {
-		return nil, errors.New("push channel is required")
+	normalized, err := normalizePushChannels(channels)
+	if err != nil {
+		return nil, err
 	}
-	return &Publisher{redis: redisClient, channel: channel}, nil
+	return &Publisher{redis: redisClient, channels: normalized}, nil
 }
 
 func (p *Publisher) Publish(ctx context.Context, event *kimgatev1.PushEvent) error {
@@ -73,46 +142,54 @@ func (p *Publisher) Publish(ctx context.Context, event *kimgatev1.PushEvent) err
 	if event == nil {
 		return errors.New("push event is required")
 	}
+	channel, err := p.channels.channelForTarget(event.GetTarget())
+	if err != nil {
+		return err
+	}
 	payload, err := proto.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("marshal push event: %w", err)
 	}
-	if err := p.redis.Publish(ctx, p.channel, payload); err != nil {
+	if err := p.redis.Publish(ctx, channel, payload); err != nil {
 		return fmt.Errorf("publish push event: %w", err)
 	}
 	return nil
 }
 
 type Subscriber struct {
-	redis   pushRedis
-	channel string
-	sender  SignalSender
-	logger  *slog.Logger
+	redis    pushRedis
+	channels pushChannels
+	sender   SignalSender
+	logger   *slog.Logger
 }
 
 func NewSubscriber(cfg config.Config, data *data.Data, sender SignalSender, logger *slog.Logger) (*Subscriber, error) {
 	if data == nil || data.Redis == nil {
 		return nil, errors.New("redis client is required")
 	}
-	return NewSubscriberWithRedis(redisPushClient{client: data.Redis}, cfg.RedisPushChannel, sender, logger)
+	channels, err := newPushChannels(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return NewSubscriberWithRedis(redisPushClient{client: data.Redis}, channels, sender, logger)
 }
 
-func NewSubscriberWithRedis(redisClient pushRedis, channel string, sender SignalSender, logger *slog.Logger) (*Subscriber, error) {
+func NewSubscriberWithRedis(redisClient pushRedis, channels pushChannels, sender SignalSender, logger *slog.Logger) (*Subscriber, error) {
 	if redisClient == nil {
 		return nil, errors.New("push redis client is required")
 	}
-	channel = strings.TrimSpace(channel)
-	if channel == "" {
-		return nil, errors.New("push channel is required")
+	normalized, err := normalizePushChannels(channels)
+	if err != nil {
+		return nil, err
 	}
 	if sender == nil {
 		return nil, errors.New("local sender is required")
 	}
 	return &Subscriber{
-		redis:   redisClient,
-		channel: channel,
-		sender:  sender,
-		logger:  logger,
+		redis:    redisClient,
+		channels: normalized,
+		sender:   sender,
+		logger:   logger,
 	}, nil
 }
 
@@ -123,7 +200,8 @@ func (s *Subscriber) Start(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	subscription := s.redis.Subscribe(ctx, s.channel)
+	subscribeChannels := s.Channels()
+	subscription := s.redis.Subscribe(ctx, subscribeChannels...)
 	defer func() {
 		if err := subscription.Close(); err != nil {
 			s.log().Error("failed to close push subscription", slog.Any("error", err))
@@ -136,11 +214,11 @@ func (s *Subscriber) Start(ctx context.Context) error {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return err
 			}
-			s.log().Error("failed to receive push event", slog.String("channel", s.channel), slog.Any("error", err))
+			s.log().Error("failed to receive push event", slog.Any("channels", subscribeChannels), slog.Any("error", err))
 			continue
 		}
 		if msg == nil || msg.Payload == "" {
-			s.log().Warn("empty push event ignored", slog.String("channel", s.channel))
+			s.log().Warn("empty push event ignored", slog.String("channel", msgChannel(msg)))
 			continue
 		}
 		var event kimgatev1.PushEvent
@@ -174,21 +252,28 @@ func (s *Subscriber) dispatch(ctx context.Context, event *kimgatev1.PushEvent) e
 		if len(userIDs) == 0 {
 			return errors.New("user_ids is required")
 		}
-		result := s.sender.SendUsers(ctx, userIDs, method, payload)
+		result := s.sender.SendUsersRaw(ctx, userIDs, method, payload)
 		return result.Err
 	case kimgatev1.PushTarget_PUSH_TARGET_GROUP:
 		group := strings.TrimSpace(event.GetGroup())
 		if group == "" {
 			return errors.New("group is required")
 		}
-		result := s.sender.SendGroup(ctx, group, method, payload)
+		result := s.sender.SendGroupRaw(ctx, group, method, payload)
 		return result.Err
 	case kimgatev1.PushTarget_PUSH_TARGET_BROADCAST:
-		result := s.sender.SendAll(ctx, method, payload)
+		result := s.sender.SendAllRaw(ctx, method, payload)
 		return result.Err
 	default:
 		return fmt.Errorf("unknown push target: %s", event.GetTarget())
 	}
+}
+
+func (s *Subscriber) Channels() []string {
+	if s == nil {
+		return nil
+	}
+	return s.channels.uniqueList()
 }
 
 func (s *Subscriber) log() *slog.Logger {
@@ -196,6 +281,13 @@ func (s *Subscriber) log() *slog.Logger {
 		return s.logger
 	}
 	return slog.Default()
+}
+
+func msgChannel(msg *redis.Message) string {
+	if msg == nil {
+		return ""
+	}
+	return msg.Channel
 }
 
 func compactStrings(values []string) []string {

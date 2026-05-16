@@ -30,6 +30,15 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.RedisPushChannel != DefaultRedisPushChannel {
 		t.Fatalf("RedisPushChannel = %q, want %q", cfg.RedisPushChannel, DefaultRedisPushChannel)
 	}
+	if cfg.RedisPushUsersChannel != DefaultRedisPushChannel+":users" {
+		t.Fatalf("RedisPushUsersChannel = %q", cfg.RedisPushUsersChannel)
+	}
+	if cfg.RedisPushGroupChannel != DefaultRedisPushChannel+":group" {
+		t.Fatalf("RedisPushGroupChannel = %q", cfg.RedisPushGroupChannel)
+	}
+	if cfg.RedisPushBroadcastChannel != DefaultRedisPushChannel+":broadcast" {
+		t.Fatalf("RedisPushBroadcastChannel = %q", cfg.RedisPushBroadcastChannel)
+	}
 }
 
 func TestLoadYAMLConfig(t *testing.T) {
@@ -50,6 +59,9 @@ redis:
   dsn: "redis://cache.example.com:6380/2"
   route_ttl: "4m"
   push_channel: "custom:push"
+  push_users_channel: "custom:users"
+  push_group_channel: "custom:group"
+  push_broadcast_channel: "custom:broadcast"
 `), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
@@ -85,6 +97,15 @@ redis:
 	if cfg.RedisPushChannel != "custom:push" {
 		t.Fatalf("RedisPushChannel = %q", cfg.RedisPushChannel)
 	}
+	if cfg.RedisPushUsersChannel != "custom:users" {
+		t.Fatalf("RedisPushUsersChannel = %q", cfg.RedisPushUsersChannel)
+	}
+	if cfg.RedisPushGroupChannel != "custom:group" {
+		t.Fatalf("RedisPushGroupChannel = %q", cfg.RedisPushGroupChannel)
+	}
+	if cfg.RedisPushBroadcastChannel != "custom:broadcast" {
+		t.Fatalf("RedisPushBroadcastChannel = %q", cfg.RedisPushBroadcastChannel)
+	}
 }
 
 func TestLoadEnvAndFlagOverride(t *testing.T) {
@@ -95,6 +116,9 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 	t.Setenv("KIM_GATE_REDIS_DSN", "redis://env.example.com:6379/1")
 	t.Setenv("KIM_GATE_REDIS_ROUTE_TTL", "5m")
 	t.Setenv("KIM_GATE_REDIS_PUSH_CHANNEL", "env:push")
+	t.Setenv("KIM_GATE_REDIS_PUSH_USERS_CHANNEL", "env:users")
+	t.Setenv("KIM_GATE_REDIS_PUSH_GROUP_CHANNEL", "env:group")
+	t.Setenv("KIM_GATE_REDIS_PUSH_BROADCAST_CHANNEL", "env:broadcast")
 
 	cfg, err := Load([]string{
 		"-http-addr", ":7777",
@@ -103,6 +127,9 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 		"-redis-dsn", "redis://flag.example.com:6379/3",
 		"-redis-route-ttl", "6m",
 		"-redis-push-channel", "flag:push",
+		"-redis-push-users-channel", "flag:users",
+		"-redis-push-group-channel", "flag:group",
+		"-redis-push-broadcast-channel", "flag:broadcast",
 	})
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
@@ -130,5 +157,14 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 	}
 	if cfg.RedisPushChannel != "flag:push" {
 		t.Fatalf("RedisPushChannel = %q", cfg.RedisPushChannel)
+	}
+	if cfg.RedisPushUsersChannel != "flag:users" {
+		t.Fatalf("RedisPushUsersChannel = %q", cfg.RedisPushUsersChannel)
+	}
+	if cfg.RedisPushGroupChannel != "flag:group" {
+		t.Fatalf("RedisPushGroupChannel = %q", cfg.RedisPushGroupChannel)
+	}
+	if cfg.RedisPushBroadcastChannel != "flag:broadcast" {
+		t.Fatalf("RedisPushBroadcastChannel = %q", cfg.RedisPushBroadcastChannel)
 	}
 }

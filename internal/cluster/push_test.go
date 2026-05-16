@@ -16,7 +16,11 @@ import (
 
 func TestPublisherPublishesProtoPayload(t *testing.T) {
 	redisClient := &fakePushRedis{}
-	publisher, err := NewPublisherWithRedis(redisClient, "kim:test:push")
+	publisher, err := NewPublisherWithRedis(redisClient, pushChannels{
+		users:     "kim:test:push:users",
+		group:     "kim:test:push:group",
+		broadcast: "kim:test:push:broadcast",
+	})
 	if err != nil {
 		t.Fatalf("NewPublisherWithRedis returned error: %v", err)
 	}
@@ -31,8 +35,8 @@ func TestPublisherPublishesProtoPayload(t *testing.T) {
 		t.Fatalf("Publish returned error: %v", err)
 	}
 
-	if redisClient.publishChannel != "kim:test:push" {
-		t.Fatalf("channel = %q, want %q", redisClient.publishChannel, "kim:test:push")
+	if redisClient.publishChannel != "kim:test:push:users" {
+		t.Fatalf("channel = %q, want %q", redisClient.publishChannel, "kim:test:push:users")
 	}
 	raw, ok := redisClient.publishMessage.([]byte)
 	if !ok {
@@ -47,11 +51,75 @@ func TestPublisherPublishesProtoPayload(t *testing.T) {
 	}
 }
 
+func TestPublisherPublishesToTargetChannels(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   *kimgatev1.PushEvent
+		channel string
+	}{
+		{
+			name: "users",
+			event: &kimgatev1.PushEvent{
+				Target:  kimgatev1.PushTarget_PUSH_TARGET_USERS,
+				UserIds: []string{"user-1"},
+				Method:  "users.push",
+			},
+			channel: "kim:test:push:users",
+		},
+		{
+			name: "group",
+			event: &kimgatev1.PushEvent{
+				Target: kimgatev1.PushTarget_PUSH_TARGET_GROUP,
+				Group:  "app:app1",
+				Method: "group.push",
+			},
+			channel: "kim:test:push:group",
+		},
+		{
+			name: "broadcast",
+			event: &kimgatev1.PushEvent{
+				Target: kimgatev1.PushTarget_PUSH_TARGET_BROADCAST,
+				Method: "all.push",
+			},
+			channel: "kim:test:push:broadcast",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			redisClient := &fakePushRedis{}
+			publisher, err := NewPublisherWithRedis(redisClient, pushChannels{
+				users:     "kim:test:push:users",
+				group:     "kim:test:push:group",
+				broadcast: "kim:test:push:broadcast",
+			})
+			if err != nil {
+				t.Fatalf("NewPublisherWithRedis returned error: %v", err)
+			}
+
+			if err := publisher.Publish(context.Background(), tt.event); err != nil {
+				t.Fatalf("Publish returned error: %v", err)
+			}
+			if redisClient.publishChannel != tt.channel {
+				t.Fatalf("channel = %q, want %q", redisClient.publishChannel, tt.channel)
+			}
+		})
+	}
+}
+
 func TestSubscriberDispatchesPushEvents(t *testing.T) {
 	sender := &fakeLocalSender{}
-	subscriber, err := NewSubscriberWithRedis(&fakePushRedis{}, "kim:test:push", sender, discardLogger())
+	redisClient := &fakePushRedis{}
+	subscriber, err := NewSubscriberWithRedis(redisClient, pushChannels{
+		users:     "kim:test:push:users",
+		group:     "kim:test:push:group",
+		broadcast: "kim:test:push:broadcast",
+	}, sender, discardLogger())
 	if err != nil {
 		t.Fatalf("NewSubscriberWithRedis returned error: %v", err)
+	}
+	if !reflect.DeepEqual(subscriber.Channels(), []string{"kim:test:push:users", "kim:test:push:group", "kim:test:push:broadcast"}) {
+		t.Fatalf("subscriber channels = %v", subscriber.Channels())
 	}
 
 	if err := subscriber.dispatch(context.Background(), &kimgatev1.PushEvent{
@@ -118,7 +186,11 @@ func TestSubscriberIgnoresBadMessagesAndContinuesUntilContextCancel(t *testing.T
 		onEmpty: cancel,
 	}
 	sender := &fakeLocalSender{}
-	subscriber, err := NewSubscriberWithRedis(&fakePushRedis{subscription: subscription}, "kim:test:push", sender, discardLogger())
+	subscriber, err := NewSubscriberWithRedis(&fakePushRedis{subscription: subscription}, pushChannels{
+		users:     "kim:test:push:users",
+		group:     "kim:test:push:group",
+		broadcast: "kim:test:push:broadcast",
+	}, sender, discardLogger())
 	if err != nil {
 		t.Fatalf("NewSubscriberWithRedis returned error: %v", err)
 	}
@@ -194,22 +266,22 @@ type fakeLocalSender struct {
 	payload         []byte
 }
 
-func (f *fakeLocalSender) SendUsers(_ context.Context, userIDs []string, method string, body any) signalg.SendResult {
+func (f *fakeLocalSender) SendUsersRaw(_ context.Context, userIDs []string, method string, payload []byte) signalg.SendResult {
 	f.userIDs = append([]string(nil), userIDs...)
 	f.method = method
-	f.payload, _ = body.([]byte)
+	f.payload = append([]byte(nil), payload...)
 	return signalg.SendResult{Matched: len(userIDs), Sent: len(userIDs)}
 }
 
-func (f *fakeLocalSender) SendGroup(_ context.Context, group string, method string, body any) signalg.SendResult {
+func (f *fakeLocalSender) SendGroupRaw(_ context.Context, group string, method string, payload []byte) signalg.SendResult {
 	f.group = group
 	f.method = method
-	f.payload, _ = body.([]byte)
+	f.payload = append([]byte(nil), payload...)
 	return signalg.SendResult{Matched: 1, Sent: 1}
 }
 
-func (f *fakeLocalSender) SendAll(_ context.Context, method string, body any) signalg.SendResult {
+func (f *fakeLocalSender) SendAllRaw(_ context.Context, method string, payload []byte) signalg.SendResult {
 	f.broadcastMethod = method
-	f.payload, _ = body.([]byte)
+	f.payload = append([]byte(nil), payload...)
 	return signalg.SendResult{Matched: 1, Sent: 1}
 }
