@@ -211,7 +211,8 @@ func (s *Subscriber) Start(ctx context.Context) error {
 	for {
 		msg, err := subscription.ReceiveMessage(ctx)
 		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
+				errors.Is(err, redis.ErrClosed) {
 				return err
 			}
 			s.log().Error("failed to receive push event", slog.Any("channels", subscribeChannels), slog.Any("error", err))

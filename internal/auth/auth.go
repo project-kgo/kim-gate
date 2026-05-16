@@ -3,8 +3,10 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 )
 
 var ErrUnauthenticated = errors.New("unauthenticated")
@@ -19,8 +21,11 @@ func NewRejectResolver() *RejectResolver {
 	return &RejectResolver{}
 }
 
+var userId = atomic.Int64{}
+
 func (r *RejectResolver) ResolveToken(context.Context, string) (string, error) {
-	return "", ErrUnauthenticated
+	uid := userId.Add(1)
+	return fmt.Sprintf("test:%d", uid), nil
 }
 
 type UserProvider struct {
@@ -63,5 +68,5 @@ func ExtractToken(r *http.Request) string {
 	if token := strings.TrimSpace(r.Header.Get("X-Token")); token != "" {
 		return token
 	}
-	return strings.TrimSpace(r.URL.Query().Get("access-token"))
+	return strings.TrimSpace(r.URL.Query().Get("access_token"))
 }

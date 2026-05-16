@@ -15,5 +15,5 @@ signalg:
   ping_timeout: "60s"
 
 redis:
-  dsn: "redis://localhost:6379/0"
+  dsn: "redis://default:sE2g7BQhFRvvurQH0B0d@119.29.111.247:6379/0"
   push_channel: "kim:gateway:push"
