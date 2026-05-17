@@ -76,6 +76,15 @@ func TestPublisherPublishesToTargetChannels(t *testing.T) {
 			channel: "kim:test:push:group",
 		},
 		{
+			name: "connections",
+			event: &kimgatev1.PushEvent{
+				Target:        kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS,
+				ConnectionIds: []string{"conn-1"},
+				Method:        "connections.push",
+			},
+			channel: "kim:test:push:users",
+		},
+		{
 			name: "broadcast",
 			event: &kimgatev1.PushEvent{
 				Target: kimgatev1.PushTarget_PUSH_TARGET_BROADCAST,
@@ -135,6 +144,21 @@ func TestSubscriberDispatchesPushEvents(t *testing.T) {
 	}
 	if !reflect.DeepEqual(sender.payload, []byte("users")) {
 		t.Fatalf("users payload = %q", sender.payload)
+	}
+
+	if err := subscriber.dispatch(context.Background(), &kimgatev1.PushEvent{
+		Target:        kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS,
+		ConnectionIds: []string{"conn-2", " ", "conn-1"},
+		Method:        "connections.push",
+		Payload:       []byte("connections"),
+	}); err != nil {
+		t.Fatalf("dispatch connections returned error: %v", err)
+	}
+	if !reflect.DeepEqual(sender.connectionIDs, []string{"conn-2", "conn-1"}) || sender.method != "connections.push" {
+		t.Fatalf("connections dispatch = ids %v method %q", sender.connectionIDs, sender.method)
+	}
+	if !reflect.DeepEqual(sender.payload, []byte("connections")) {
+		t.Fatalf("connections payload = %q", sender.payload)
 	}
 
 	if err := subscriber.dispatch(context.Background(), &kimgatev1.PushEvent{
@@ -260,6 +284,7 @@ func (f *fakePushSubscription) Close() error {
 
 type fakeLocalSender struct {
 	userIDs         []string
+	connectionIDs   []string
 	group           string
 	method          string
 	broadcastMethod string
@@ -271,6 +296,13 @@ func (f *fakeLocalSender) SendUsersRaw(_ context.Context, userIDs []string, meth
 	f.method = method
 	f.payload = append([]byte(nil), payload...)
 	return signalg.SendResult{Matched: len(userIDs), Sent: len(userIDs)}
+}
+
+func (f *fakeLocalSender) SendConnectionsRaw(_ context.Context, connectionIDs []string, method string, payload []byte) signalg.SendResult {
+	f.connectionIDs = append([]string(nil), connectionIDs...)
+	f.method = method
+	f.payload = append([]byte(nil), payload...)
+	return signalg.SendResult{Matched: len(connectionIDs), Sent: len(connectionIDs)}
 }
 
 func (f *fakeLocalSender) SendGroupRaw(_ context.Context, group string, method string, payload []byte) signalg.SendResult {

@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/cloudwego/hertz v0.10.4
 	github.com/google/wire v0.7.0
-	github.com/project-kgo/signalg v0.0.0-20260515095318-8c1420c1b33a
+	github.com/project-kgo/signalg v0.0.0-20260517065819-352d93b118cf
 	github.com/redis/go-redis/v9 v9.19.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0

@@ -38,6 +38,13 @@ func TestGatewayServiceValidation(t *testing.T) {
 			},
 		},
 		{
+			name: "empty connection ids",
+			call: func() error {
+				_, err := service.SendToConnections(context.Background(), &kimgatev1.SendToConnectionsRequest{Method: "server.push"})
+				return err
+			},
+		},
+		{
 			name: "user and group both set",
 			call: func() error {
 				_, err := service.GetOnline(context.Background(), &kimgatev1.GetOnlineRequest{
@@ -66,6 +73,32 @@ func TestGatewayServiceValidation(t *testing.T) {
 				t.Fatalf("publish count = %d, want 0", publisher.publishCount)
 			}
 		})
+	}
+}
+
+func TestGatewayServicePublishesConnectionEvents(t *testing.T) {
+	publisher := &stubPushPublisher{}
+	service := newTestServiceWithPublisher(t, &stubUserConnectionStore{}, publisher)
+
+	_, err := service.SendToConnections(context.Background(), &kimgatev1.SendToConnectionsRequest{
+		ConnectionIds: []string{" conn-1 ", "", "conn-2", "conn-1"},
+		Method:        "server.push",
+		Payload:       []byte("connection-payload"),
+	})
+	if err != nil {
+		t.Fatalf("SendToConnections returned error: %v", err)
+	}
+	if publisher.event.GetTarget() != kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS {
+		t.Fatalf("target = %s, want connections", publisher.event.GetTarget())
+	}
+	if !reflect.DeepEqual(publisher.event.GetConnectionIds(), []string{"conn-1", "conn-2", "conn-1"}) {
+		t.Fatalf("connection ids = %v", publisher.event.GetConnectionIds())
+	}
+	if publisher.event.GetMethod() != "server.push" {
+		t.Fatalf("method = %q, want %q", publisher.event.GetMethod(), "server.push")
+	}
+	if !reflect.DeepEqual(publisher.event.GetPayload(), []byte("connection-payload")) {
+		t.Fatalf("payload = %q", publisher.event.GetPayload())
 	}
 }
 
@@ -240,6 +273,7 @@ func (s *stubPushPublisher) Publish(_ context.Context, event *kimgatev1.PushEven
 	if event != nil {
 		copied := *event
 		copied.UserIds = append([]string(nil), event.UserIds...)
+		copied.ConnectionIds = append([]string(nil), event.ConnectionIds...)
 		s.event = &copied
 	}
 	return s.err

@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	GatewayService_SendToUsers_FullMethodName        = "/kimgate.v1.GatewayService/SendToUsers"
+	GatewayService_SendToConnections_FullMethodName  = "/kimgate.v1.GatewayService/SendToConnections"
 	GatewayService_SendToGroup_FullMethodName        = "/kimgate.v1.GatewayService/SendToGroup"
 	GatewayService_Broadcast_FullMethodName          = "/kimgate.v1.GatewayService/Broadcast"
 	GatewayService_GetOnline_FullMethodName          = "/kimgate.v1.GatewayService/GetOnline"
@@ -31,6 +32,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GatewayServiceClient interface {
 	SendToUsers(ctx context.Context, in *SendToUsersRequest, opts ...grpc.CallOption) (*SendResponse, error)
+	SendToConnections(ctx context.Context, in *SendToConnectionsRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	SendToGroup(ctx context.Context, in *SendToGroupRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	GetOnline(ctx context.Context, in *GetOnlineRequest, opts ...grpc.CallOption) (*GetOnlineResponse, error)
@@ -49,6 +51,16 @@ func (c *gatewayServiceClient) SendToUsers(ctx context.Context, in *SendToUsersR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SendResponse)
 	err := c.cc.Invoke(ctx, GatewayService_SendToUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayServiceClient) SendToConnections(ctx context.Context, in *SendToConnectionsRequest, opts ...grpc.CallOption) (*SendResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendResponse)
+	err := c.cc.Invoke(ctx, GatewayService_SendToConnections_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +112,7 @@ func (c *gatewayServiceClient) GetUserConnections(ctx context.Context, in *GetUs
 // for forward compatibility.
 type GatewayServiceServer interface {
 	SendToUsers(context.Context, *SendToUsersRequest) (*SendResponse, error)
+	SendToConnections(context.Context, *SendToConnectionsRequest) (*SendResponse, error)
 	SendToGroup(context.Context, *SendToGroupRequest) (*SendResponse, error)
 	Broadcast(context.Context, *BroadcastRequest) (*SendResponse, error)
 	GetOnline(context.Context, *GetOnlineRequest) (*GetOnlineResponse, error)
@@ -116,6 +129,9 @@ type UnimplementedGatewayServiceServer struct{}
 
 func (UnimplementedGatewayServiceServer) SendToUsers(context.Context, *SendToUsersRequest) (*SendResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendToUsers not implemented")
+}
+func (UnimplementedGatewayServiceServer) SendToConnections(context.Context, *SendToConnectionsRequest) (*SendResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendToConnections not implemented")
 }
 func (UnimplementedGatewayServiceServer) SendToGroup(context.Context, *SendToGroupRequest) (*SendResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendToGroup not implemented")
@@ -164,6 +180,24 @@ func _GatewayService_SendToUsers_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GatewayServiceServer).SendToUsers(ctx, req.(*SendToUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayService_SendToConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendToConnectionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayServiceServer).SendToConnections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GatewayService_SendToConnections_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayServiceServer).SendToConnections(ctx, req.(*SendToConnectionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -250,6 +284,10 @@ var GatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendToUsers",
 			Handler:    _GatewayService_SendToUsers_Handler,
+		},
+		{
+			MethodName: "SendToConnections",
+			Handler:    _GatewayService_SendToConnections_Handler,
 		},
 		{
 			MethodName: "SendToGroup",

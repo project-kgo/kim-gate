@@ -25,6 +25,7 @@ const (
 	PushTarget_PUSH_TARGET_USERS       PushTarget = 1
 	PushTarget_PUSH_TARGET_GROUP       PushTarget = 2
 	PushTarget_PUSH_TARGET_BROADCAST   PushTarget = 3
+	PushTarget_PUSH_TARGET_CONNECTIONS PushTarget = 4
 )
 
 var (
@@ -33,12 +34,14 @@ var (
 		1: "PUSH_TARGET_USERS",
 		2: "PUSH_TARGET_GROUP",
 		3: "PUSH_TARGET_BROADCAST",
+		4: "PUSH_TARGET_CONNECTIONS",
 	}
 	PushTarget_value = map[string]int32{
 		"PUSH_TARGET_UNSPECIFIED": 0,
 		"PUSH_TARGET_USERS":       1,
 		"PUSH_TARGET_GROUP":       2,
 		"PUSH_TARGET_BROADCAST":   3,
+		"PUSH_TARGET_CONNECTIONS": 4,
 	}
 )
 
@@ -74,11 +77,12 @@ type PushEvent struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Target  PushTarget `protobuf:"varint,1,opt,name=target,proto3,enum=kimgate.v1.PushTarget" json:"target,omitempty"`
-	UserIds []string   `protobuf:"bytes,2,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
-	Group   string     `protobuf:"bytes,3,opt,name=group,proto3" json:"group,omitempty"`
-	Method  string     `protobuf:"bytes,4,opt,name=method,proto3" json:"method,omitempty"`
-	Payload []byte     `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	Target        PushTarget `protobuf:"varint,1,opt,name=target,proto3,enum=kimgate.v1.PushTarget" json:"target,omitempty"`
+	UserIds       []string   `protobuf:"bytes,2,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	Group         string     `protobuf:"bytes,3,opt,name=group,proto3" json:"group,omitempty"`
+	Method        string     `protobuf:"bytes,4,opt,name=method,proto3" json:"method,omitempty"`
+	Payload       []byte     `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	ConnectionIds []string   `protobuf:"bytes,6,rep,name=connection_ids,json=connectionIds,proto3" json:"connection_ids,omitempty"`
 }
 
 func (x *PushEvent) Reset() {
@@ -144,6 +148,13 @@ func (x *PushEvent) GetMethod() string {
 func (x *PushEvent) GetPayload() []byte {
 	if x != nil {
 		return x.Payload
+	}
+	return nil
+}
+
+func (x *PushEvent) GetConnectionIds() []string {
+	if x != nil {
+		return x.ConnectionIds
 	}
 	return nil
 }
@@ -239,6 +250,7 @@ func buildPushEventRawDesc() []byte {
 				{Name: proto.String("PUSH_TARGET_USERS"), Number: proto.Int32(1)},
 				{Name: proto.String("PUSH_TARGET_GROUP"), Number: proto.Int32(2)},
 				{Name: proto.String("PUSH_TARGET_BROADCAST"), Number: proto.Int32(3)},
+				{Name: proto.String("PUSH_TARGET_CONNECTIONS"), Number: proto.Int32(4)},
 			},
 		}},
 		MessageType: []*descriptorpb.DescriptorProto{{
@@ -279,6 +291,13 @@ func buildPushEventRawDesc() []byte {
 					Label:    &labelOptional,
 					Type:     &typeBytes,
 					JsonName: proto.String("payload"),
+				},
+				{
+					Name:     proto.String("connection_ids"),
+					Number:   proto.Int32(6),
+					Label:    &labelRepeated,
+					Type:     &typeString,
+					JsonName: proto.String("connectionIds"),
 				},
 			},
 		}},

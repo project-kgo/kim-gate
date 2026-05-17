@@ -9,6 +9,7 @@ enum PushTarget {
   PUSH_TARGET_USERS = 1;
   PUSH_TARGET_GROUP = 2;
   PUSH_TARGET_BROADCAST = 3;
+  PUSH_TARGET_CONNECTIONS = 4;
 }
 
 message PushEvent {
@@ -17,10 +18,12 @@ message PushEvent {
   string group = 3;
   string method = 4;
   bytes payload = 5;
+  repeated string connection_ids = 6;
 }
 
 service GatewayService {
   rpc SendToUsers(SendToUsersRequest) returns (SendResponse);
+  rpc SendToConnections(SendToConnectionsRequest) returns (SendResponse);
   rpc SendToGroup(SendToGroupRequest) returns (SendResponse);
   rpc Broadcast(BroadcastRequest) returns (SendResponse);
   rpc GetOnline(GetOnlineRequest) returns (GetOnlineResponse);
@@ -29,6 +32,12 @@ service GatewayService {
 
 message SendToUsersRequest {
   repeated string user_ids = 1;
+  string method = 2;
+  bytes payload = 3;
+}
+
+message SendToConnectionsRequest {
+  repeated string connection_ids = 1;
   string method = 2;
   bytes payload = 3;
 }

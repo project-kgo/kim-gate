@@ -82,6 +82,66 @@ func (x *SendToUsersRequest) GetPayload() []byte {
 	return nil
 }
 
+type SendToConnectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ConnectionIds []string               `protobuf:"bytes,1,rep,name=connection_ids,json=connectionIds,proto3" json:"connection_ids,omitempty"`
+	Method        string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	Payload       []byte                 `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendToConnectionsRequest) Reset() {
+	*x = SendToConnectionsRequest{}
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendToConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendToConnectionsRequest) ProtoMessage() {}
+
+func (x *SendToConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendToConnectionsRequest.ProtoReflect.Descriptor instead.
+func (*SendToConnectionsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SendToConnectionsRequest) GetConnectionIds() []string {
+	if x != nil {
+		return x.ConnectionIds
+	}
+	return nil
+}
+
+func (x *SendToConnectionsRequest) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *SendToConnectionsRequest) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
 type SendToGroupRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Group         string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
@@ -93,7 +153,7 @@ type SendToGroupRequest struct {
 
 func (x *SendToGroupRequest) Reset() {
 	*x = SendToGroupRequest{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[1]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -105,7 +165,7 @@ func (x *SendToGroupRequest) String() string {
 func (*SendToGroupRequest) ProtoMessage() {}
 
 func (x *SendToGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[1]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -118,7 +178,7 @@ func (x *SendToGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendToGroupRequest.ProtoReflect.Descriptor instead.
 func (*SendToGroupRequest) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{1}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SendToGroupRequest) GetGroup() string {
@@ -152,7 +212,7 @@ type BroadcastRequest struct {
 
 func (x *BroadcastRequest) Reset() {
 	*x = BroadcastRequest{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[2]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -164,7 +224,7 @@ func (x *BroadcastRequest) String() string {
 func (*BroadcastRequest) ProtoMessage() {}
 
 func (x *BroadcastRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[2]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -177,7 +237,7 @@ func (x *BroadcastRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastRequest.ProtoReflect.Descriptor instead.
 func (*BroadcastRequest) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{2}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *BroadcastRequest) GetMethod() string {
@@ -206,7 +266,7 @@ type SendResponse struct {
 
 func (x *SendResponse) Reset() {
 	*x = SendResponse{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[3]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -218,7 +278,7 @@ func (x *SendResponse) String() string {
 func (*SendResponse) ProtoMessage() {}
 
 func (x *SendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[3]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -231,7 +291,7 @@ func (x *SendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendResponse.ProtoReflect.Descriptor instead.
 func (*SendResponse) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{3}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SendResponse) GetMatched() int32 {
@@ -272,7 +332,7 @@ type GetOnlineRequest struct {
 
 func (x *GetOnlineRequest) Reset() {
 	*x = GetOnlineRequest{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[4]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -284,7 +344,7 @@ func (x *GetOnlineRequest) String() string {
 func (*GetOnlineRequest) ProtoMessage() {}
 
 func (x *GetOnlineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[4]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -297,7 +357,7 @@ func (x *GetOnlineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOnlineRequest.ProtoReflect.Descriptor instead.
 func (*GetOnlineRequest) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{4}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetOnlineRequest) GetUserId() string {
@@ -323,7 +383,7 @@ type GetOnlineResponse struct {
 
 func (x *GetOnlineResponse) Reset() {
 	*x = GetOnlineResponse{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -335,7 +395,7 @@ func (x *GetOnlineResponse) String() string {
 func (*GetOnlineResponse) ProtoMessage() {}
 
 func (x *GetOnlineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -348,7 +408,7 @@ func (x *GetOnlineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOnlineResponse.ProtoReflect.Descriptor instead.
 func (*GetOnlineResponse) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{5}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetOnlineResponse) GetOnline() int32 {
@@ -367,7 +427,7 @@ type GetUserConnectionsRequest struct {
 
 func (x *GetUserConnectionsRequest) Reset() {
 	*x = GetUserConnectionsRequest{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -379,7 +439,7 @@ func (x *GetUserConnectionsRequest) String() string {
 func (*GetUserConnectionsRequest) ProtoMessage() {}
 
 func (x *GetUserConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -392,7 +452,7 @@ func (x *GetUserConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*GetUserConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{6}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetUserConnectionsRequest) GetUserId() string {
@@ -412,7 +472,7 @@ type UserConnection struct {
 
 func (x *UserConnection) Reset() {
 	*x = UserConnection{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -424,7 +484,7 @@ func (x *UserConnection) String() string {
 func (*UserConnection) ProtoMessage() {}
 
 func (x *UserConnection) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -437,7 +497,7 @@ func (x *UserConnection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserConnection.ProtoReflect.Descriptor instead.
 func (*UserConnection) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{7}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UserConnection) GetConnectionId() string {
@@ -463,7 +523,7 @@ type GetUserConnectionsResponse struct {
 
 func (x *GetUserConnectionsResponse) Reset() {
 	*x = GetUserConnectionsResponse{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -475,7 +535,7 @@ func (x *GetUserConnectionsResponse) String() string {
 func (*GetUserConnectionsResponse) ProtoMessage() {}
 
 func (x *GetUserConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -488,7 +548,7 @@ func (x *GetUserConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*GetUserConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{8}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetUserConnectionsResponse) GetConnections() []*UserConnection {
@@ -514,32 +574,35 @@ func file_proto_kimgate_v1_gateway_proto_rawDescGZIP() []byte {
 	return file_proto_kimgate_v1_gateway_proto_rawDescData
 }
 
-var file_proto_kimgate_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_proto_kimgate_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_kimgate_v1_gateway_proto_goTypes = []any{
 	(*SendToUsersRequest)(nil),         // 0: kimgate.v1.SendToUsersRequest
-	(*SendToGroupRequest)(nil),         // 1: kimgate.v1.SendToGroupRequest
-	(*BroadcastRequest)(nil),           // 2: kimgate.v1.BroadcastRequest
-	(*SendResponse)(nil),               // 3: kimgate.v1.SendResponse
-	(*GetOnlineRequest)(nil),           // 4: kimgate.v1.GetOnlineRequest
-	(*GetOnlineResponse)(nil),          // 5: kimgate.v1.GetOnlineResponse
-	(*GetUserConnectionsRequest)(nil),  // 6: kimgate.v1.GetUserConnectionsRequest
-	(*UserConnection)(nil),             // 7: kimgate.v1.UserConnection
-	(*GetUserConnectionsResponse)(nil), // 8: kimgate.v1.GetUserConnectionsResponse
+	(*SendToConnectionsRequest)(nil),   // 1: kimgate.v1.SendToConnectionsRequest
+	(*SendToGroupRequest)(nil),         // 2: kimgate.v1.SendToGroupRequest
+	(*BroadcastRequest)(nil),           // 3: kimgate.v1.BroadcastRequest
+	(*SendResponse)(nil),               // 4: kimgate.v1.SendResponse
+	(*GetOnlineRequest)(nil),           // 5: kimgate.v1.GetOnlineRequest
+	(*GetOnlineResponse)(nil),          // 6: kimgate.v1.GetOnlineResponse
+	(*GetUserConnectionsRequest)(nil),  // 7: kimgate.v1.GetUserConnectionsRequest
+	(*UserConnection)(nil),             // 8: kimgate.v1.UserConnection
+	(*GetUserConnectionsResponse)(nil), // 9: kimgate.v1.GetUserConnectionsResponse
 }
 var file_proto_kimgate_v1_gateway_proto_depIdxs = []int32{
-	7, // 0: kimgate.v1.GetUserConnectionsResponse.connections:type_name -> kimgate.v1.UserConnection
+	8, // 0: kimgate.v1.GetUserConnectionsResponse.connections:type_name -> kimgate.v1.UserConnection
 	0, // 1: kimgate.v1.GatewayService.SendToUsers:input_type -> kimgate.v1.SendToUsersRequest
-	1, // 2: kimgate.v1.GatewayService.SendToGroup:input_type -> kimgate.v1.SendToGroupRequest
-	2, // 3: kimgate.v1.GatewayService.Broadcast:input_type -> kimgate.v1.BroadcastRequest
-	4, // 4: kimgate.v1.GatewayService.GetOnline:input_type -> kimgate.v1.GetOnlineRequest
-	6, // 5: kimgate.v1.GatewayService.GetUserConnections:input_type -> kimgate.v1.GetUserConnectionsRequest
-	3, // 6: kimgate.v1.GatewayService.SendToUsers:output_type -> kimgate.v1.SendResponse
-	3, // 7: kimgate.v1.GatewayService.SendToGroup:output_type -> kimgate.v1.SendResponse
-	3, // 8: kimgate.v1.GatewayService.Broadcast:output_type -> kimgate.v1.SendResponse
-	5, // 9: kimgate.v1.GatewayService.GetOnline:output_type -> kimgate.v1.GetOnlineResponse
-	8, // 10: kimgate.v1.GatewayService.GetUserConnections:output_type -> kimgate.v1.GetUserConnectionsResponse
-	6, // [6:11] is the sub-list for method output_type
-	1, // [1:6] is the sub-list for method input_type
+	1, // 2: kimgate.v1.GatewayService.SendToConnections:input_type -> kimgate.v1.SendToConnectionsRequest
+	2, // 3: kimgate.v1.GatewayService.SendToGroup:input_type -> kimgate.v1.SendToGroupRequest
+	3, // 4: kimgate.v1.GatewayService.Broadcast:input_type -> kimgate.v1.BroadcastRequest
+	5, // 5: kimgate.v1.GatewayService.GetOnline:input_type -> kimgate.v1.GetOnlineRequest
+	7, // 6: kimgate.v1.GatewayService.GetUserConnections:input_type -> kimgate.v1.GetUserConnectionsRequest
+	4, // 7: kimgate.v1.GatewayService.SendToUsers:output_type -> kimgate.v1.SendResponse
+	4, // 8: kimgate.v1.GatewayService.SendToConnections:output_type -> kimgate.v1.SendResponse
+	4, // 9: kimgate.v1.GatewayService.SendToGroup:output_type -> kimgate.v1.SendResponse
+	4, // 10: kimgate.v1.GatewayService.Broadcast:output_type -> kimgate.v1.SendResponse
+	6, // 11: kimgate.v1.GatewayService.GetOnline:output_type -> kimgate.v1.GetOnlineResponse
+	9, // 12: kimgate.v1.GatewayService.GetUserConnections:output_type -> kimgate.v1.GetUserConnectionsResponse
+	7, // [7:13] is the sub-list for method output_type
+	1, // [1:7] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -556,7 +619,7 @@ func file_proto_kimgate_v1_gateway_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_kimgate_v1_gateway_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -612,6 +675,14 @@ func buildGatewayRawDesc() []byte {
 				Name: proto.String("SendToUsersRequest"),
 				Field: []*descriptorpb.FieldDescriptorProto{
 					field("user_ids", 1, labelRepeated, typeString, "userIds"),
+					field("method", 2, labelOptional, typeString, "method"),
+					field("payload", 3, labelOptional, typeBytes, "payload"),
+				},
+			},
+			{
+				Name: proto.String("SendToConnectionsRequest"),
+				Field: []*descriptorpb.FieldDescriptorProto{
+					field("connection_ids", 1, labelRepeated, typeString, "connectionIds"),
 					field("method", 2, labelOptional, typeString, "method"),
 					field("payload", 3, labelOptional, typeBytes, "payload"),
 				},
@@ -677,6 +748,7 @@ func buildGatewayRawDesc() []byte {
 			Name: proto.String("GatewayService"),
 			Method: []*descriptorpb.MethodDescriptorProto{
 				method("SendToUsers", ".kimgate.v1.SendToUsersRequest", ".kimgate.v1.SendResponse"),
+				method("SendToConnections", ".kimgate.v1.SendToConnectionsRequest", ".kimgate.v1.SendResponse"),
 				method("SendToGroup", ".kimgate.v1.SendToGroupRequest", ".kimgate.v1.SendResponse"),
 				method("Broadcast", ".kimgate.v1.BroadcastRequest", ".kimgate.v1.SendResponse"),
 				method("GetOnline", ".kimgate.v1.GetOnlineRequest", ".kimgate.v1.GetOnlineResponse"),

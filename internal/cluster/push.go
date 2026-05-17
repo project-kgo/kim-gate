@@ -39,6 +39,7 @@ func (c redisPushClient) Subscribe(ctx context.Context, channels ...string) push
 
 type SignalSender interface {
 	SendUsersRaw(ctx context.Context, userIDs []string, method string, payload []byte) signalg.SendResult
+	SendConnectionsRaw(ctx context.Context, connectionIDs []string, method string, payload []byte) signalg.SendResult
 	SendGroupRaw(ctx context.Context, group string, method string, payload []byte) signalg.SendResult
 	SendAllRaw(ctx context.Context, method string, payload []byte) signalg.SendResult
 }
@@ -98,6 +99,8 @@ func (c pushChannels) uniqueList() []string {
 func (c pushChannels) channelForTarget(target kimgatev1.PushTarget) (string, error) {
 	switch target {
 	case kimgatev1.PushTarget_PUSH_TARGET_USERS:
+		return c.users, nil
+	case kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS:
 		return c.users, nil
 	case kimgatev1.PushTarget_PUSH_TARGET_GROUP:
 		return c.group, nil
@@ -254,6 +257,13 @@ func (s *Subscriber) dispatch(ctx context.Context, event *kimgatev1.PushEvent) e
 			return errors.New("user_ids is required")
 		}
 		result := s.sender.SendUsersRaw(ctx, userIDs, method, payload)
+		return result.Err
+	case kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS:
+		connectionIDs := compactStrings(event.GetConnectionIds())
+		if len(connectionIDs) == 0 {
+			return errors.New("connection_ids is required")
+		}
+		result := s.sender.SendConnectionsRaw(ctx, connectionIDs, method, payload)
 		return result.Err
 	case kimgatev1.PushTarget_PUSH_TARGET_GROUP:
 		group := strings.TrimSpace(event.GetGroup())

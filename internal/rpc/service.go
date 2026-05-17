@@ -68,6 +68,29 @@ func (s *GatewayService) SendToUsers(ctx context.Context, req *kimgatev1.SendToU
 	return &kimgatev1.SendResponse{}, nil
 }
 
+func (s *GatewayService) SendToConnections(ctx context.Context, req *kimgatev1.SendToConnectionsRequest) (*kimgatev1.SendResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	if err := validateMethod(req.Method); err != nil {
+		return nil, err
+	}
+	connectionIDs := compactStrings(req.ConnectionIds)
+	if len(connectionIDs) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "connection_ids is required")
+	}
+	event := &kimgatev1.PushEvent{
+		Target:        kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS,
+		ConnectionIds: connectionIDs,
+		Method:        strings.TrimSpace(req.Method),
+		Payload:       req.GetPayload(),
+	}
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("publish push event: %v", err))
+	}
+	return &kimgatev1.SendResponse{}, nil
+}
+
 func (s *GatewayService) SendToGroup(ctx context.Context, req *kimgatev1.SendToGroupRequest) (*kimgatev1.SendResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
