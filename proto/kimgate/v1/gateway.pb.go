@@ -322,6 +322,162 @@ func (x *SendResponse) GetError() string {
 	return ""
 }
 
+type CloseUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseUsersRequest) Reset() {
+	*x = CloseUsersRequest{}
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseUsersRequest) ProtoMessage() {}
+
+func (x *CloseUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseUsersRequest.ProtoReflect.Descriptor instead.
+func (*CloseUsersRequest) Descriptor() ([]byte, []int) {
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CloseUsersRequest) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+type CloseConnectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ConnectionIds []string               `protobuf:"bytes,1,rep,name=connection_ids,json=connectionIds,proto3" json:"connection_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseConnectionsRequest) Reset() {
+	*x = CloseConnectionsRequest{}
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseConnectionsRequest) ProtoMessage() {}
+
+func (x *CloseConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseConnectionsRequest.ProtoReflect.Descriptor instead.
+func (*CloseConnectionsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CloseConnectionsRequest) GetConnectionIds() []string {
+	if x != nil {
+		return x.ConnectionIds
+	}
+	return nil
+}
+
+type CloseResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Matched       int32                  `protobuf:"varint,1,opt,name=matched,proto3" json:"matched,omitempty"`
+	Closed        int32                  `protobuf:"varint,2,opt,name=closed,proto3" json:"closed,omitempty"`
+	Failed        int32                  `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseResponse) Reset() {
+	*x = CloseResponse{}
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseResponse) ProtoMessage() {}
+
+func (x *CloseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseResponse.ProtoReflect.Descriptor instead.
+func (*CloseResponse) Descriptor() ([]byte, []int) {
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CloseResponse) GetMatched() int32 {
+	if x != nil {
+		return x.Matched
+	}
+	return 0
+}
+
+func (x *CloseResponse) GetClosed() int32 {
+	if x != nil {
+		return x.Closed
+	}
+	return 0
+}
+
+func (x *CloseResponse) GetFailed() int32 {
+	if x != nil {
+		return x.Failed
+	}
+	return 0
+}
+
+func (x *CloseResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 type GetOnlineRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -332,7 +488,7 @@ type GetOnlineRequest struct {
 
 func (x *GetOnlineRequest) Reset() {
 	*x = GetOnlineRequest{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -344,7 +500,7 @@ func (x *GetOnlineRequest) String() string {
 func (*GetOnlineRequest) ProtoMessage() {}
 
 func (x *GetOnlineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[5]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -357,7 +513,7 @@ func (x *GetOnlineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOnlineRequest.ProtoReflect.Descriptor instead.
 func (*GetOnlineRequest) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{5}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetOnlineRequest) GetUserId() string {
@@ -383,7 +539,7 @@ type GetOnlineResponse struct {
 
 func (x *GetOnlineResponse) Reset() {
 	*x = GetOnlineResponse{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -395,7 +551,7 @@ func (x *GetOnlineResponse) String() string {
 func (*GetOnlineResponse) ProtoMessage() {}
 
 func (x *GetOnlineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[6]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -408,7 +564,7 @@ func (x *GetOnlineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOnlineResponse.ProtoReflect.Descriptor instead.
 func (*GetOnlineResponse) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{6}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetOnlineResponse) GetOnline() int32 {
@@ -427,7 +583,7 @@ type GetUserConnectionsRequest struct {
 
 func (x *GetUserConnectionsRequest) Reset() {
 	*x = GetUserConnectionsRequest{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -439,7 +595,7 @@ func (x *GetUserConnectionsRequest) String() string {
 func (*GetUserConnectionsRequest) ProtoMessage() {}
 
 func (x *GetUserConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[7]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -452,7 +608,7 @@ func (x *GetUserConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*GetUserConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{7}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetUserConnectionsRequest) GetUserId() string {
@@ -472,7 +628,7 @@ type UserConnection struct {
 
 func (x *UserConnection) Reset() {
 	*x = UserConnection{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -484,7 +640,7 @@ func (x *UserConnection) String() string {
 func (*UserConnection) ProtoMessage() {}
 
 func (x *UserConnection) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[8]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -497,7 +653,7 @@ func (x *UserConnection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserConnection.ProtoReflect.Descriptor instead.
 func (*UserConnection) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{8}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UserConnection) GetConnectionId() string {
@@ -523,7 +679,7 @@ type GetUserConnectionsResponse struct {
 
 func (x *GetUserConnectionsResponse) Reset() {
 	*x = GetUserConnectionsResponse{}
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[9]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -535,7 +691,7 @@ func (x *GetUserConnectionsResponse) String() string {
 func (*GetUserConnectionsResponse) ProtoMessage() {}
 
 func (x *GetUserConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[9]
+	mi := &file_proto_kimgate_v1_gateway_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -548,7 +704,7 @@ func (x *GetUserConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*GetUserConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{9}
+	return file_proto_kimgate_v1_gateway_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetUserConnectionsResponse) GetConnections() []*UserConnection {
@@ -574,38 +730,45 @@ func file_proto_kimgate_v1_gateway_proto_rawDescGZIP() []byte {
 	return file_proto_kimgate_v1_gateway_proto_rawDescData
 }
 
-var file_proto_kimgate_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_kimgate_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_kimgate_v1_gateway_proto_goTypes = []any{
 	(*SendToUsersRequest)(nil),         // 0: kimgate.v1.SendToUsersRequest
 	(*SendToConnectionsRequest)(nil),   // 1: kimgate.v1.SendToConnectionsRequest
 	(*SendToGroupRequest)(nil),         // 2: kimgate.v1.SendToGroupRequest
 	(*BroadcastRequest)(nil),           // 3: kimgate.v1.BroadcastRequest
 	(*SendResponse)(nil),               // 4: kimgate.v1.SendResponse
-	(*GetOnlineRequest)(nil),           // 5: kimgate.v1.GetOnlineRequest
-	(*GetOnlineResponse)(nil),          // 6: kimgate.v1.GetOnlineResponse
-	(*GetUserConnectionsRequest)(nil),  // 7: kimgate.v1.GetUserConnectionsRequest
-	(*UserConnection)(nil),             // 8: kimgate.v1.UserConnection
-	(*GetUserConnectionsResponse)(nil), // 9: kimgate.v1.GetUserConnectionsResponse
+	(*CloseUsersRequest)(nil),          // 5: kimgate.v1.CloseUsersRequest
+	(*CloseConnectionsRequest)(nil),    // 6: kimgate.v1.CloseConnectionsRequest
+	(*CloseResponse)(nil),              // 7: kimgate.v1.CloseResponse
+	(*GetOnlineRequest)(nil),           // 8: kimgate.v1.GetOnlineRequest
+	(*GetOnlineResponse)(nil),          // 9: kimgate.v1.GetOnlineResponse
+	(*GetUserConnectionsRequest)(nil),  // 10: kimgate.v1.GetUserConnectionsRequest
+	(*UserConnection)(nil),             // 11: kimgate.v1.UserConnection
+	(*GetUserConnectionsResponse)(nil), // 12: kimgate.v1.GetUserConnectionsResponse
 }
 var file_proto_kimgate_v1_gateway_proto_depIdxs = []int32{
-	8, // 0: kimgate.v1.GetUserConnectionsResponse.connections:type_name -> kimgate.v1.UserConnection
-	0, // 1: kimgate.v1.GatewayService.SendToUsers:input_type -> kimgate.v1.SendToUsersRequest
-	1, // 2: kimgate.v1.GatewayService.SendToConnections:input_type -> kimgate.v1.SendToConnectionsRequest
-	2, // 3: kimgate.v1.GatewayService.SendToGroup:input_type -> kimgate.v1.SendToGroupRequest
-	3, // 4: kimgate.v1.GatewayService.Broadcast:input_type -> kimgate.v1.BroadcastRequest
-	5, // 5: kimgate.v1.GatewayService.GetOnline:input_type -> kimgate.v1.GetOnlineRequest
-	7, // 6: kimgate.v1.GatewayService.GetUserConnections:input_type -> kimgate.v1.GetUserConnectionsRequest
-	4, // 7: kimgate.v1.GatewayService.SendToUsers:output_type -> kimgate.v1.SendResponse
-	4, // 8: kimgate.v1.GatewayService.SendToConnections:output_type -> kimgate.v1.SendResponse
-	4, // 9: kimgate.v1.GatewayService.SendToGroup:output_type -> kimgate.v1.SendResponse
-	4, // 10: kimgate.v1.GatewayService.Broadcast:output_type -> kimgate.v1.SendResponse
-	6, // 11: kimgate.v1.GatewayService.GetOnline:output_type -> kimgate.v1.GetOnlineResponse
-	9, // 12: kimgate.v1.GatewayService.GetUserConnections:output_type -> kimgate.v1.GetUserConnectionsResponse
-	7, // [7:13] is the sub-list for method output_type
-	1, // [1:7] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	11, // 0: kimgate.v1.GetUserConnectionsResponse.connections:type_name -> kimgate.v1.UserConnection
+	0,  // 1: kimgate.v1.GatewayService.SendToUsers:input_type -> kimgate.v1.SendToUsersRequest
+	1,  // 2: kimgate.v1.GatewayService.SendToConnections:input_type -> kimgate.v1.SendToConnectionsRequest
+	2,  // 3: kimgate.v1.GatewayService.SendToGroup:input_type -> kimgate.v1.SendToGroupRequest
+	3,  // 4: kimgate.v1.GatewayService.Broadcast:input_type -> kimgate.v1.BroadcastRequest
+	5,  // 5: kimgate.v1.GatewayService.CloseUsers:input_type -> kimgate.v1.CloseUsersRequest
+	6,  // 6: kimgate.v1.GatewayService.CloseConnections:input_type -> kimgate.v1.CloseConnectionsRequest
+	8,  // 7: kimgate.v1.GatewayService.GetOnline:input_type -> kimgate.v1.GetOnlineRequest
+	10, // 8: kimgate.v1.GatewayService.GetUserConnections:input_type -> kimgate.v1.GetUserConnectionsRequest
+	4,  // 9: kimgate.v1.GatewayService.SendToUsers:output_type -> kimgate.v1.SendResponse
+	4,  // 10: kimgate.v1.GatewayService.SendToConnections:output_type -> kimgate.v1.SendResponse
+	4,  // 11: kimgate.v1.GatewayService.SendToGroup:output_type -> kimgate.v1.SendResponse
+	4,  // 12: kimgate.v1.GatewayService.Broadcast:output_type -> kimgate.v1.SendResponse
+	7,  // 13: kimgate.v1.GatewayService.CloseUsers:output_type -> kimgate.v1.CloseResponse
+	7,  // 14: kimgate.v1.GatewayService.CloseConnections:output_type -> kimgate.v1.CloseResponse
+	9,  // 15: kimgate.v1.GatewayService.GetOnline:output_type -> kimgate.v1.GetOnlineResponse
+	12, // 16: kimgate.v1.GatewayService.GetUserConnections:output_type -> kimgate.v1.GetUserConnectionsResponse
+	9,  // [9:17] is the sub-list for method output_type
+	1,  // [1:9] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_proto_kimgate_v1_gateway_proto_init() }
@@ -619,7 +782,7 @@ func file_proto_kimgate_v1_gateway_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_kimgate_v1_gateway_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -712,6 +875,27 @@ func buildGatewayRawDesc() []byte {
 				},
 			},
 			{
+				Name: proto.String("CloseUsersRequest"),
+				Field: []*descriptorpb.FieldDescriptorProto{
+					field("user_ids", 1, labelRepeated, typeString, "userIds"),
+				},
+			},
+			{
+				Name: proto.String("CloseConnectionsRequest"),
+				Field: []*descriptorpb.FieldDescriptorProto{
+					field("connection_ids", 1, labelRepeated, typeString, "connectionIds"),
+				},
+			},
+			{
+				Name: proto.String("CloseResponse"),
+				Field: []*descriptorpb.FieldDescriptorProto{
+					field("matched", 1, labelOptional, typeInt32, "matched"),
+					field("closed", 2, labelOptional, typeInt32, "closed"),
+					field("failed", 3, labelOptional, typeInt32, "failed"),
+					field("error", 4, labelOptional, typeString, "error"),
+				},
+			},
+			{
 				Name: proto.String("GetOnlineRequest"),
 				Field: []*descriptorpb.FieldDescriptorProto{
 					field("user_id", 1, labelOptional, typeString, "userId"),
@@ -751,6 +935,8 @@ func buildGatewayRawDesc() []byte {
 				method("SendToConnections", ".kimgate.v1.SendToConnectionsRequest", ".kimgate.v1.SendResponse"),
 				method("SendToGroup", ".kimgate.v1.SendToGroupRequest", ".kimgate.v1.SendResponse"),
 				method("Broadcast", ".kimgate.v1.BroadcastRequest", ".kimgate.v1.SendResponse"),
+				method("CloseUsers", ".kimgate.v1.CloseUsersRequest", ".kimgate.v1.CloseResponse"),
+				method("CloseConnections", ".kimgate.v1.CloseConnectionsRequest", ".kimgate.v1.CloseResponse"),
 				method("GetOnline", ".kimgate.v1.GetOnlineRequest", ".kimgate.v1.GetOnlineResponse"),
 				method("GetUserConnections", ".kimgate.v1.GetUserConnectionsRequest", ".kimgate.v1.GetUserConnectionsResponse"),
 			},

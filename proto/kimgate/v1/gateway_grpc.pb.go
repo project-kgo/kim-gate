@@ -23,6 +23,8 @@ const (
 	GatewayService_SendToConnections_FullMethodName  = "/kimgate.v1.GatewayService/SendToConnections"
 	GatewayService_SendToGroup_FullMethodName        = "/kimgate.v1.GatewayService/SendToGroup"
 	GatewayService_Broadcast_FullMethodName          = "/kimgate.v1.GatewayService/Broadcast"
+	GatewayService_CloseUsers_FullMethodName         = "/kimgate.v1.GatewayService/CloseUsers"
+	GatewayService_CloseConnections_FullMethodName   = "/kimgate.v1.GatewayService/CloseConnections"
 	GatewayService_GetOnline_FullMethodName          = "/kimgate.v1.GatewayService/GetOnline"
 	GatewayService_GetUserConnections_FullMethodName = "/kimgate.v1.GatewayService/GetUserConnections"
 )
@@ -35,6 +37,8 @@ type GatewayServiceClient interface {
 	SendToConnections(ctx context.Context, in *SendToConnectionsRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	SendToGroup(ctx context.Context, in *SendToGroupRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*SendResponse, error)
+	CloseUsers(ctx context.Context, in *CloseUsersRequest, opts ...grpc.CallOption) (*CloseResponse, error)
+	CloseConnections(ctx context.Context, in *CloseConnectionsRequest, opts ...grpc.CallOption) (*CloseResponse, error)
 	GetOnline(ctx context.Context, in *GetOnlineRequest, opts ...grpc.CallOption) (*GetOnlineResponse, error)
 	GetUserConnections(ctx context.Context, in *GetUserConnectionsRequest, opts ...grpc.CallOption) (*GetUserConnectionsResponse, error)
 }
@@ -87,6 +91,26 @@ func (c *gatewayServiceClient) Broadcast(ctx context.Context, in *BroadcastReque
 	return out, nil
 }
 
+func (c *gatewayServiceClient) CloseUsers(ctx context.Context, in *CloseUsersRequest, opts ...grpc.CallOption) (*CloseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloseResponse)
+	err := c.cc.Invoke(ctx, GatewayService_CloseUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayServiceClient) CloseConnections(ctx context.Context, in *CloseConnectionsRequest, opts ...grpc.CallOption) (*CloseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloseResponse)
+	err := c.cc.Invoke(ctx, GatewayService_CloseConnections_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *gatewayServiceClient) GetOnline(ctx context.Context, in *GetOnlineRequest, opts ...grpc.CallOption) (*GetOnlineResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetOnlineResponse)
@@ -115,6 +139,8 @@ type GatewayServiceServer interface {
 	SendToConnections(context.Context, *SendToConnectionsRequest) (*SendResponse, error)
 	SendToGroup(context.Context, *SendToGroupRequest) (*SendResponse, error)
 	Broadcast(context.Context, *BroadcastRequest) (*SendResponse, error)
+	CloseUsers(context.Context, *CloseUsersRequest) (*CloseResponse, error)
+	CloseConnections(context.Context, *CloseConnectionsRequest) (*CloseResponse, error)
 	GetOnline(context.Context, *GetOnlineRequest) (*GetOnlineResponse, error)
 	GetUserConnections(context.Context, *GetUserConnectionsRequest) (*GetUserConnectionsResponse, error)
 	mustEmbedUnimplementedGatewayServiceServer()
@@ -138,6 +164,12 @@ func (UnimplementedGatewayServiceServer) SendToGroup(context.Context, *SendToGro
 }
 func (UnimplementedGatewayServiceServer) Broadcast(context.Context, *BroadcastRequest) (*SendResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Broadcast not implemented")
+}
+func (UnimplementedGatewayServiceServer) CloseUsers(context.Context, *CloseUsersRequest) (*CloseResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CloseUsers not implemented")
+}
+func (UnimplementedGatewayServiceServer) CloseConnections(context.Context, *CloseConnectionsRequest) (*CloseResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CloseConnections not implemented")
 }
 func (UnimplementedGatewayServiceServer) GetOnline(context.Context, *GetOnlineRequest) (*GetOnlineResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOnline not implemented")
@@ -238,6 +270,42 @@ func _GatewayService_Broadcast_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GatewayService_CloseUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayServiceServer).CloseUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GatewayService_CloseUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayServiceServer).CloseUsers(ctx, req.(*CloseUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayService_CloseConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseConnectionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayServiceServer).CloseConnections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GatewayService_CloseConnections_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayServiceServer).CloseConnections(ctx, req.(*CloseConnectionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GatewayService_GetOnline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetOnlineRequest)
 	if err := dec(in); err != nil {
@@ -296,6 +364,14 @@ var GatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Broadcast",
 			Handler:    _GatewayService_Broadcast_Handler,
+		},
+		{
+			MethodName: "CloseUsers",
+			Handler:    _GatewayService_CloseUsers_Handler,
+		},
+		{
+			MethodName: "CloseConnections",
+			Handler:    _GatewayService_CloseConnections_Handler,
 		},
 		{
 			MethodName: "GetOnline",

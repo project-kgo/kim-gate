@@ -132,6 +132,42 @@ func (s *GatewayService) Broadcast(ctx context.Context, req *kimgatev1.Broadcast
 	return &kimgatev1.SendResponse{}, nil
 }
 
+func (s *GatewayService) CloseUsers(ctx context.Context, req *kimgatev1.CloseUsersRequest) (*kimgatev1.CloseResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	userIDs := compactStrings(req.UserIds)
+	if len(userIDs) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_ids is required")
+	}
+	event := &kimgatev1.PushEvent{
+		Target:  kimgatev1.PushTarget_PUSH_TARGET_CLOSE_USERS,
+		UserIds: userIDs,
+	}
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("publish close event: %v", err))
+	}
+	return &kimgatev1.CloseResponse{}, nil
+}
+
+func (s *GatewayService) CloseConnections(ctx context.Context, req *kimgatev1.CloseConnectionsRequest) (*kimgatev1.CloseResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	connectionIDs := compactStrings(req.ConnectionIds)
+	if len(connectionIDs) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "connection_ids is required")
+	}
+	event := &kimgatev1.PushEvent{
+		Target:        kimgatev1.PushTarget_PUSH_TARGET_CLOSE_CONNECTIONS,
+		ConnectionIds: connectionIDs,
+	}
+	if err := s.publisher.Publish(ctx, event); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("publish close event: %v", err))
+	}
+	return &kimgatev1.CloseResponse{}, nil
+}
+
 func (s *GatewayService) GetOnline(_ context.Context, req *kimgatev1.GetOnlineRequest) (*kimgatev1.GetOnlineResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")

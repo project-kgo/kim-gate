@@ -45,6 +45,20 @@ func TestGatewayServiceValidation(t *testing.T) {
 			},
 		},
 		{
+			name: "empty close user ids",
+			call: func() error {
+				_, err := service.CloseUsers(context.Background(), &kimgatev1.CloseUsersRequest{})
+				return err
+			},
+		},
+		{
+			name: "empty close connection ids",
+			call: func() error {
+				_, err := service.CloseConnections(context.Background(), &kimgatev1.CloseConnectionsRequest{})
+				return err
+			},
+		},
+		{
 			name: "user and group both set",
 			call: func() error {
 				_, err := service.GetOnline(context.Background(), &kimgatev1.GetOnlineRequest{
@@ -73,6 +87,37 @@ func TestGatewayServiceValidation(t *testing.T) {
 				t.Fatalf("publish count = %d, want 0", publisher.publishCount)
 			}
 		})
+	}
+}
+
+func TestGatewayServicePublishesCloseEvents(t *testing.T) {
+	publisher := &stubPushPublisher{}
+	service := newTestServiceWithPublisher(t, &stubUserConnectionStore{}, publisher)
+
+	_, err := service.CloseUsers(context.Background(), &kimgatev1.CloseUsersRequest{
+		UserIds: []string{" user-1 ", "", "user-2"},
+	})
+	if err != nil {
+		t.Fatalf("CloseUsers returned error: %v", err)
+	}
+	if publisher.event.GetTarget() != kimgatev1.PushTarget_PUSH_TARGET_CLOSE_USERS {
+		t.Fatalf("target = %s, want close users", publisher.event.GetTarget())
+	}
+	if !reflect.DeepEqual(publisher.event.GetUserIds(), []string{"user-1", "user-2"}) {
+		t.Fatalf("user ids = %v", publisher.event.GetUserIds())
+	}
+
+	_, err = service.CloseConnections(context.Background(), &kimgatev1.CloseConnectionsRequest{
+		ConnectionIds: []string{" conn-1 ", "", "conn-2"},
+	})
+	if err != nil {
+		t.Fatalf("CloseConnections returned error: %v", err)
+	}
+	if publisher.event.GetTarget() != kimgatev1.PushTarget_PUSH_TARGET_CLOSE_CONNECTIONS {
+		t.Fatalf("target = %s, want close connections", publisher.event.GetTarget())
+	}
+	if !reflect.DeepEqual(publisher.event.GetConnectionIds(), []string{"conn-1", "conn-2"}) {
+		t.Fatalf("connection ids = %v", publisher.event.GetConnectionIds())
 	}
 }
 

@@ -10,6 +10,8 @@ enum PushTarget {
   PUSH_TARGET_GROUP = 2;
   PUSH_TARGET_BROADCAST = 3;
   PUSH_TARGET_CONNECTIONS = 4;
+  PUSH_TARGET_CLOSE_USERS = 5;
+  PUSH_TARGET_CLOSE_CONNECTIONS = 6;
 }
 
 message PushEvent {
@@ -26,6 +28,8 @@ service GatewayService {
   rpc SendToConnections(SendToConnectionsRequest) returns (SendResponse);
   rpc SendToGroup(SendToGroupRequest) returns (SendResponse);
   rpc Broadcast(BroadcastRequest) returns (SendResponse);
+  rpc CloseUsers(CloseUsersRequest) returns (CloseResponse);
+  rpc CloseConnections(CloseConnectionsRequest) returns (CloseResponse);
   rpc GetOnline(GetOnlineRequest) returns (GetOnlineResponse);
   rpc GetUserConnections(GetUserConnectionsRequest) returns (GetUserConnectionsResponse);
 }
@@ -56,6 +60,21 @@ message BroadcastRequest {
 message SendResponse {
   int32 matched = 1;
   int32 sent = 2;
+  int32 failed = 3;
+  string error = 4;
+}
+
+message CloseUsersRequest {
+  repeated string user_ids = 1;
+}
+
+message CloseConnectionsRequest {
+  repeated string connection_ids = 1;
+}
+
+message CloseResponse {
+  int32 matched = 1;
+  int32 closed = 2;
   int32 failed = 3;
   string error = 4;
 }

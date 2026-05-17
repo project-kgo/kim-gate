@@ -21,11 +21,13 @@ const (
 type PushTarget int32
 
 const (
-	PushTarget_PUSH_TARGET_UNSPECIFIED PushTarget = 0
-	PushTarget_PUSH_TARGET_USERS       PushTarget = 1
-	PushTarget_PUSH_TARGET_GROUP       PushTarget = 2
-	PushTarget_PUSH_TARGET_BROADCAST   PushTarget = 3
-	PushTarget_PUSH_TARGET_CONNECTIONS PushTarget = 4
+	PushTarget_PUSH_TARGET_UNSPECIFIED       PushTarget = 0
+	PushTarget_PUSH_TARGET_USERS             PushTarget = 1
+	PushTarget_PUSH_TARGET_GROUP             PushTarget = 2
+	PushTarget_PUSH_TARGET_BROADCAST         PushTarget = 3
+	PushTarget_PUSH_TARGET_CONNECTIONS       PushTarget = 4
+	PushTarget_PUSH_TARGET_CLOSE_USERS       PushTarget = 5
+	PushTarget_PUSH_TARGET_CLOSE_CONNECTIONS PushTarget = 6
 )
 
 var (
@@ -35,13 +37,17 @@ var (
 		2: "PUSH_TARGET_GROUP",
 		3: "PUSH_TARGET_BROADCAST",
 		4: "PUSH_TARGET_CONNECTIONS",
+		5: "PUSH_TARGET_CLOSE_USERS",
+		6: "PUSH_TARGET_CLOSE_CONNECTIONS",
 	}
 	PushTarget_value = map[string]int32{
-		"PUSH_TARGET_UNSPECIFIED": 0,
-		"PUSH_TARGET_USERS":       1,
-		"PUSH_TARGET_GROUP":       2,
-		"PUSH_TARGET_BROADCAST":   3,
-		"PUSH_TARGET_CONNECTIONS": 4,
+		"PUSH_TARGET_UNSPECIFIED":       0,
+		"PUSH_TARGET_USERS":             1,
+		"PUSH_TARGET_GROUP":             2,
+		"PUSH_TARGET_BROADCAST":         3,
+		"PUSH_TARGET_CONNECTIONS":       4,
+		"PUSH_TARGET_CLOSE_USERS":       5,
+		"PUSH_TARGET_CLOSE_CONNECTIONS": 6,
 	}
 )
 
@@ -251,6 +257,8 @@ func buildPushEventRawDesc() []byte {
 				{Name: proto.String("PUSH_TARGET_GROUP"), Number: proto.Int32(2)},
 				{Name: proto.String("PUSH_TARGET_BROADCAST"), Number: proto.Int32(3)},
 				{Name: proto.String("PUSH_TARGET_CONNECTIONS"), Number: proto.Int32(4)},
+				{Name: proto.String("PUSH_TARGET_CLOSE_USERS"), Number: proto.Int32(5)},
+				{Name: proto.String("PUSH_TARGET_CLOSE_CONNECTIONS"), Number: proto.Int32(6)},
 			},
 		}},
 		MessageType: []*descriptorpb.DescriptorProto{{

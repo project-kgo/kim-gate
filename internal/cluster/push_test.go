@@ -85,6 +85,22 @@ func TestPublisherPublishesToTargetChannels(t *testing.T) {
 			channel: "kim:test:push:users",
 		},
 		{
+			name: "close users",
+			event: &kimgatev1.PushEvent{
+				Target:  kimgatev1.PushTarget_PUSH_TARGET_CLOSE_USERS,
+				UserIds: []string{"user-1"},
+			},
+			channel: "kim:test:push:users",
+		},
+		{
+			name: "close connections",
+			event: &kimgatev1.PushEvent{
+				Target:        kimgatev1.PushTarget_PUSH_TARGET_CLOSE_CONNECTIONS,
+				ConnectionIds: []string{"conn-1"},
+			},
+			channel: "kim:test:push:users",
+		},
+		{
 			name: "broadcast",
 			event: &kimgatev1.PushEvent{
 				Target: kimgatev1.PushTarget_PUSH_TARGET_BROADCAST,
@@ -159,6 +175,26 @@ func TestSubscriberDispatchesPushEvents(t *testing.T) {
 	}
 	if !reflect.DeepEqual(sender.payload, []byte("connections")) {
 		t.Fatalf("connections payload = %q", sender.payload)
+	}
+
+	if err := subscriber.dispatch(context.Background(), &kimgatev1.PushEvent{
+		Target:  kimgatev1.PushTarget_PUSH_TARGET_CLOSE_USERS,
+		UserIds: []string{"user-2", " ", "user-1"},
+	}); err != nil {
+		t.Fatalf("dispatch close users returned error: %v", err)
+	}
+	if !reflect.DeepEqual(sender.closedUserIDs, []string{"user-2", "user-1"}) {
+		t.Fatalf("closed user ids = %v", sender.closedUserIDs)
+	}
+
+	if err := subscriber.dispatch(context.Background(), &kimgatev1.PushEvent{
+		Target:        kimgatev1.PushTarget_PUSH_TARGET_CLOSE_CONNECTIONS,
+		ConnectionIds: []string{"conn-2", " ", "conn-1"},
+	}); err != nil {
+		t.Fatalf("dispatch close connections returned error: %v", err)
+	}
+	if !reflect.DeepEqual(sender.closedConnectionIDs, []string{"conn-2", "conn-1"}) {
+		t.Fatalf("closed connection ids = %v", sender.closedConnectionIDs)
 	}
 
 	if err := subscriber.dispatch(context.Background(), &kimgatev1.PushEvent{
@@ -283,12 +319,14 @@ func (f *fakePushSubscription) Close() error {
 }
 
 type fakeLocalSender struct {
-	userIDs         []string
-	connectionIDs   []string
-	group           string
-	method          string
-	broadcastMethod string
-	payload         []byte
+	userIDs             []string
+	connectionIDs       []string
+	closedUserIDs       []string
+	closedConnectionIDs []string
+	group               string
+	method              string
+	broadcastMethod     string
+	payload             []byte
 }
 
 func (f *fakeLocalSender) SendUsersRaw(_ context.Context, userIDs []string, method string, payload []byte) signalg.SendResult {
@@ -303,6 +341,16 @@ func (f *fakeLocalSender) SendConnectionsRaw(_ context.Context, connectionIDs []
 	f.method = method
 	f.payload = append([]byte(nil), payload...)
 	return signalg.SendResult{Matched: len(connectionIDs), Sent: len(connectionIDs)}
+}
+
+func (f *fakeLocalSender) CloseUsers(_ context.Context, userIDs []string) signalg.CloseResult {
+	f.closedUserIDs = append([]string(nil), userIDs...)
+	return signalg.CloseResult{Matched: len(userIDs), Closed: len(userIDs)}
+}
+
+func (f *fakeLocalSender) CloseConnections(_ context.Context, connectionIDs []string) signalg.CloseResult {
+	f.closedConnectionIDs = append([]string(nil), connectionIDs...)
+	return signalg.CloseResult{Matched: len(connectionIDs), Closed: len(connectionIDs)}
 }
 
 func (f *fakeLocalSender) SendGroupRaw(_ context.Context, group string, method string, payload []byte) signalg.SendResult {

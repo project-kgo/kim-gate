@@ -40,6 +40,8 @@ func (c redisPushClient) Subscribe(ctx context.Context, channels ...string) push
 type SignalSender interface {
 	SendUsersRaw(ctx context.Context, userIDs []string, method string, payload []byte) signalg.SendResult
 	SendConnectionsRaw(ctx context.Context, connectionIDs []string, method string, payload []byte) signalg.SendResult
+	CloseUsers(ctx context.Context, userIDs []string) signalg.CloseResult
+	CloseConnections(ctx context.Context, connectionIDs []string) signalg.CloseResult
 	SendGroupRaw(ctx context.Context, group string, method string, payload []byte) signalg.SendResult
 	SendAllRaw(ctx context.Context, method string, payload []byte) signalg.SendResult
 }
@@ -101,6 +103,10 @@ func (c pushChannels) channelForTarget(target kimgatev1.PushTarget) (string, err
 	case kimgatev1.PushTarget_PUSH_TARGET_USERS:
 		return c.users, nil
 	case kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS:
+		return c.users, nil
+	case kimgatev1.PushTarget_PUSH_TARGET_CLOSE_USERS:
+		return c.users, nil
+	case kimgatev1.PushTarget_PUSH_TARGET_CLOSE_CONNECTIONS:
 		return c.users, nil
 	case kimgatev1.PushTarget_PUSH_TARGET_GROUP:
 		return c.group, nil
@@ -245,13 +251,13 @@ func (s *Subscriber) dispatch(ctx context.Context, event *kimgatev1.PushEvent) e
 	if event == nil {
 		return errors.New("push event is required")
 	}
-	method := strings.TrimSpace(event.GetMethod())
-	if method == "" {
-		return errors.New("method is required")
-	}
 	payload := event.GetPayload()
 	switch event.GetTarget() {
 	case kimgatev1.PushTarget_PUSH_TARGET_USERS:
+		method := strings.TrimSpace(event.GetMethod())
+		if method == "" {
+			return errors.New("method is required")
+		}
 		userIDs := compactStrings(event.GetUserIds())
 		if len(userIDs) == 0 {
 			return errors.New("user_ids is required")
@@ -259,13 +265,35 @@ func (s *Subscriber) dispatch(ctx context.Context, event *kimgatev1.PushEvent) e
 		result := s.sender.SendUsersRaw(ctx, userIDs, method, payload)
 		return result.Err
 	case kimgatev1.PushTarget_PUSH_TARGET_CONNECTIONS:
+		method := strings.TrimSpace(event.GetMethod())
+		if method == "" {
+			return errors.New("method is required")
+		}
 		connectionIDs := compactStrings(event.GetConnectionIds())
 		if len(connectionIDs) == 0 {
 			return errors.New("connection_ids is required")
 		}
 		result := s.sender.SendConnectionsRaw(ctx, connectionIDs, method, payload)
 		return result.Err
+	case kimgatev1.PushTarget_PUSH_TARGET_CLOSE_USERS:
+		userIDs := compactStrings(event.GetUserIds())
+		if len(userIDs) == 0 {
+			return errors.New("user_ids is required")
+		}
+		result := s.sender.CloseUsers(ctx, userIDs)
+		return result.Err
+	case kimgatev1.PushTarget_PUSH_TARGET_CLOSE_CONNECTIONS:
+		connectionIDs := compactStrings(event.GetConnectionIds())
+		if len(connectionIDs) == 0 {
+			return errors.New("connection_ids is required")
+		}
+		result := s.sender.CloseConnections(ctx, connectionIDs)
+		return result.Err
 	case kimgatev1.PushTarget_PUSH_TARGET_GROUP:
+		method := strings.TrimSpace(event.GetMethod())
+		if method == "" {
+			return errors.New("method is required")
+		}
 		group := strings.TrimSpace(event.GetGroup())
 		if group == "" {
 			return errors.New("group is required")
@@ -273,6 +301,10 @@ func (s *Subscriber) dispatch(ctx context.Context, event *kimgatev1.PushEvent) e
 		result := s.sender.SendGroupRaw(ctx, group, method, payload)
 		return result.Err
 	case kimgatev1.PushTarget_PUSH_TARGET_BROADCAST:
+		method := strings.TrimSpace(event.GetMethod())
+		if method == "" {
+			return errors.New("method is required")
+		}
 		result := s.sender.SendAllRaw(ctx, method, payload)
 		return result.Err
 	default:
