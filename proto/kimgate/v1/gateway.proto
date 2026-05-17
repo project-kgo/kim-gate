@@ -24,6 +24,8 @@ message PushEvent {
 }
 
 service GatewayService {
+  // Push and close RPCs are fire-and-forget: success means the event was
+  // accepted by the gateway publish path, not that clients received it.
   rpc SendToUsers(SendToUsersRequest) returns (SendResponse);
   rpc SendToConnections(SendToConnectionsRequest) returns (SendResponse);
   rpc SendToGroup(SendToGroupRequest) returns (SendResponse);
@@ -58,6 +60,8 @@ message BroadcastRequest {
 }
 
 message SendResponse {
+  // Reserved for future synchronous delivery reports. Fire-and-forget sends
+  // currently return zero values when the event is accepted.
   int32 matched = 1;
   int32 sent = 2;
   int32 failed = 3;
@@ -73,6 +77,8 @@ message CloseConnectionsRequest {
 }
 
 message CloseResponse {
+  // Reserved for future synchronous close reports. Fire-and-forget closes
+  // currently return zero values when the event is accepted.
   int32 matched = 1;
   int32 closed = 2;
   int32 failed = 3;

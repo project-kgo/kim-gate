@@ -119,6 +119,24 @@ func TestHubOnPingRefreshesUserRoute(t *testing.T) {
 	}
 }
 
+func TestHubOnDisconnectedRemovesConnectionRoute(t *testing.T) {
+	routes := &fakeUserRoutes{bucket: 4}
+	hub := &Hub{
+		logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		serverID:   "server-1",
+		userRoutes: routes,
+	}
+
+	hub.OnDisconnected(context.Background(), &signalg.Connection{
+		ID:     "conn-4",
+		UserID: "app-1:user-4",
+	}, nil)
+
+	if routes.removedUserID != "app-1:user-4" || routes.removedConnID != "conn-4" {
+		t.Fatalf("removed route = (%q, %q)", routes.removedUserID, routes.removedConnID)
+	}
+}
+
 type fakeUserRoutes struct {
 	bucket           int
 	registerErr      error
@@ -126,6 +144,8 @@ type fakeUserRoutes struct {
 	registeredConnID string
 	refreshedUserID  string
 	refreshedConnID  string
+	removedUserID    string
+	removedConnID    string
 }
 
 type fakeGroupJoiner struct {
@@ -144,6 +164,12 @@ func (f *fakeUserRoutes) RegisterConnection(_ context.Context, userID, connectio
 func (f *fakeUserRoutes) RefreshConnection(_ context.Context, userID, connectionID string) error {
 	f.refreshedUserID = userID
 	f.refreshedConnID = connectionID
+	return f.registerErr
+}
+
+func (f *fakeUserRoutes) RemoveConnection(_ context.Context, userID, connectionID string) error {
+	f.removedUserID = userID
+	f.removedConnID = connectionID
 	return f.registerErr
 }
 

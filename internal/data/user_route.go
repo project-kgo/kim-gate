@@ -55,6 +55,7 @@ return userIDs
 type userRouteRedis interface {
 	RunScript(ctx context.Context, script *redis.Script, keys []string, args ...interface{}) error
 	HGetAll(ctx context.Context, key string) (map[string]string, error)
+	HDel(ctx context.Context, key string, field string) error
 	PollExpiredUsers(ctx context.Context, key string, max int64, limit int) ([]string, error)
 }
 
@@ -68,6 +69,10 @@ func (c redisUserRouteClient) RunScript(ctx context.Context, script *redis.Scrip
 
 func (c redisUserRouteClient) HGetAll(ctx context.Context, key string) (map[string]string, error) {
 	return c.client.HGetAll(ctx, key).Result()
+}
+
+func (c redisUserRouteClient) HDel(ctx context.Context, key string, field string) error {
+	return c.client.HDel(ctx, key, field).Err()
 }
 
 func (c redisUserRouteClient) PollExpiredUsers(ctx context.Context, key string, max int64, limit int) ([]string, error) {
@@ -120,6 +125,21 @@ func (s *UserRouteStore) RegisterConnection(ctx context.Context, userID, connect
 
 func (s *UserRouteStore) RefreshConnection(ctx context.Context, userID, connectionID string) error {
 	return s.refreshConnection(ctx, userID, connectionID)
+}
+
+func (s *UserRouteStore) RemoveConnection(ctx context.Context, userID, connectionID string) error {
+	userID = strings.TrimSpace(userID)
+	connectionID = strings.TrimSpace(connectionID)
+	if userID == "" {
+		return errors.New("user id is required")
+	}
+	if connectionID == "" {
+		return errors.New("connection id is required")
+	}
+	if err := s.redis.HDel(ctx, userRouteKey(s.BucketOf(userID), userID), connectionID); err != nil {
+		return fmt.Errorf("remove user route: %w", err)
+	}
+	return nil
 }
 
 func (s *UserRouteStore) refreshConnection(ctx context.Context, userID, connectionID string) error {

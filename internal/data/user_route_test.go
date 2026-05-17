@@ -99,6 +99,26 @@ func TestUserRouteStoreRefreshConnectionUsesSameLuaScript(t *testing.T) {
 	}
 }
 
+func TestUserRouteStoreRemoveConnectionDeletesHashFieldOnly(t *testing.T) {
+	client := &fakeUserRouteRedis{}
+	store, err := NewUserRouteStoreWithRedis(client, time.Minute, "server-a", nil)
+	if err != nil {
+		t.Fatalf("NewUserRouteStoreWithRedis returned error: %v", err)
+	}
+
+	if err := store.RemoveConnection(context.Background(), "user-1", "conn-1"); err != nil {
+		t.Fatalf("RemoveConnection returned error: %v", err)
+	}
+
+	wantKey := userRouteKey(store.BucketOf("user-1"), "user-1")
+	if client.hdelKey != wantKey || client.hdelField != "conn-1" {
+		t.Fatalf("hdel = (%q, %q), want (%q, conn-1)", client.hdelKey, client.hdelField, wantKey)
+	}
+	if client.pollKey != "" {
+		t.Fatalf("poll key = %q, want none", client.pollKey)
+	}
+}
+
 func TestUserRouteStoreListUserServerIDsDeduplicates(t *testing.T) {
 	client := &fakeUserRouteRedis{
 		hashValues: map[string]string{
@@ -237,6 +257,10 @@ type fakeUserRouteRedis struct {
 	runArgs   []interface{}
 	runErr    error
 
+	hdelKey   string
+	hdelField string
+	hdelErr   error
+
 	hashValues map[string]string
 	hashErr    error
 
@@ -256,6 +280,12 @@ func (f *fakeUserRouteRedis) RunScript(_ context.Context, script *redis.Script, 
 
 func (f *fakeUserRouteRedis) HGetAll(context.Context, string) (map[string]string, error) {
 	return f.hashValues, f.hashErr
+}
+
+func (f *fakeUserRouteRedis) HDel(_ context.Context, key string, field string) error {
+	f.hdelKey = key
+	f.hdelField = field
+	return f.hdelErr
 }
 
 func (f *fakeUserRouteRedis) PollExpiredUsers(_ context.Context, key string, max int64, limit int) ([]string, error) {

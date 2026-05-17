@@ -29,6 +29,7 @@ type Hub struct {
 type userRouteRegistrar interface {
 	RegisterConnection(ctx context.Context, userID, connectionID string) error
 	RefreshConnection(ctx context.Context, userID, connectionID string) error
+	RemoveConnection(ctx context.Context, userID, connectionID string) error
 	BucketOf(userID string) int
 }
 
@@ -158,6 +159,19 @@ func (h *Hub) OnConnected(_ context.Context, conn *signalg.Connection) error {
 }
 
 func (h *Hub) OnDisconnected(_ context.Context, conn *signalg.Connection, err error) {
+	if h.userRoutes != nil {
+		bucket := h.userRoutes.BucketOf(conn.UserID)
+		if removeErr := h.userRoutes.RemoveConnection(context.Background(), conn.UserID, conn.ID); removeErr != nil {
+			h.log().Error("failed to remove websocket route",
+				slog.String("connection_id", conn.ID),
+				slog.String("user_id", conn.UserID),
+				slog.String("server_id", h.serverID),
+				slog.Int("bucket", bucket),
+				slog.Any("error", removeErr),
+			)
+		}
+	}
+
 	attrs := []slog.Attr{
 		slog.String("connection_id", conn.ID),
 		slog.String("user_id", conn.UserID),
