@@ -33,9 +33,9 @@ type Config struct {
 	PingInterval    time.Duration
 	PingTimeout     time.Duration
 
-	RedisDSN         string
-	RedisRouteTTL    time.Duration
-	RedisPushChannel string
+	RedisDSN                  string
+	RedisRouteTTL             time.Duration
+	RedisPushChannel          string
 	RedisPushUsersChannel     string
 	RedisPushGroupChannel     string
 	RedisPushBroadcastChannel string
@@ -76,20 +76,20 @@ func Load(args []string) (Config, error) {
 	}
 
 	cfg := Config{
-		HTTPAddr:         v.GetString("http.addr"),
-		WebSocketPath:    v.GetString("websocket.path"),
-		GRPCSocket:       v.GetString("grpc.socket"),
-		ShutdownTimeout:  v.GetDuration("shutdown.timeout"),
-		PingInterval:     v.GetDuration("signalg.ping_interval"),
-		PingTimeout:      v.GetDuration("signalg.ping_timeout"),
+		HTTPAddr:                  v.GetString("http.addr"),
+		WebSocketPath:             v.GetString("websocket.path"),
+		GRPCSocket:                v.GetString("grpc.socket"),
+		ShutdownTimeout:           v.GetDuration("shutdown.timeout"),
+		PingInterval:              v.GetDuration("signalg.ping_interval"),
+		PingTimeout:               v.GetDuration("signalg.ping_timeout"),
 		RedisDSN:                  v.GetString("redis.dsn"),
 		RedisRouteTTL:             v.GetDuration("redis.route_ttl"),
 		RedisPushChannel:          v.GetString("redis.push_channel"),
 		RedisPushUsersChannel:     v.GetString("redis.push_users_channel"),
 		RedisPushGroupChannel:     v.GetString("redis.push_group_channel"),
 		RedisPushBroadcastChannel: v.GetString("redis.push_broadcast_channel"),
-		JWTSecret:     v.GetString("jwt.secret"),
-		JWTExpiration: v.GetDuration("jwt.expiration"),
+		JWTSecret:                 v.GetString("jwt.secret"),
+		JWTExpiration:             v.GetDuration("jwt.expiration"),
 	}
 
 	cfg.normalize()
@@ -101,20 +101,20 @@ func Load(args []string) (Config, error) {
 
 func Defaults() Config {
 	return Config{
-		HTTPAddr:         DefaultHTTPAddr,
-		WebSocketPath:    DefaultWebSocketPath,
-		GRPCSocket:       DefaultGRPCSocket,
-		ShutdownTimeout:  DefaultShutdownTimeout,
-		PingInterval:     DefaultPingInterval,
-		PingTimeout:      DefaultPingTimeout,
+		HTTPAddr:                  DefaultHTTPAddr,
+		WebSocketPath:             DefaultWebSocketPath,
+		GRPCSocket:                DefaultGRPCSocket,
+		ShutdownTimeout:           DefaultShutdownTimeout,
+		PingInterval:              DefaultPingInterval,
+		PingTimeout:               DefaultPingTimeout,
 		RedisDSN:                  DefaultRedisDSN,
 		RedisRouteTTL:             DefaultRedisRouteTTL,
 		RedisPushChannel:          DefaultRedisPushChannel,
 		RedisPushUsersChannel:     DefaultRedisPushChannel + pushUsersSuffix,
 		RedisPushGroupChannel:     DefaultRedisPushChannel + pushGroupSuffix,
 		RedisPushBroadcastChannel: DefaultRedisPushChannel + pushBroadcastSuffix,
-		JWTSecret:     "",
-		JWTExpiration: 0,
+		JWTSecret:                 "",
+		JWTExpiration:             time.Hour * 24 * 180,
 	}
 }
 
@@ -158,20 +158,20 @@ func bindEnv(v *viper.Viper) {
 
 func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	bindings := map[string]string{
-		"http.addr":             "http-addr",
-		"websocket.path":        "ws-path",
-		"grpc.socket":           "grpc-socket",
-		"shutdown.timeout":      "shutdown-timeout",
-		"signalg.ping_interval": "ping-interval",
-		"signalg.ping_timeout":  "ping-timeout",
+		"http.addr":                    "http-addr",
+		"websocket.path":               "ws-path",
+		"grpc.socket":                  "grpc-socket",
+		"shutdown.timeout":             "shutdown-timeout",
+		"signalg.ping_interval":        "ping-interval",
+		"signalg.ping_timeout":         "ping-timeout",
 		"redis.dsn":                    "redis-dsn",
 		"redis.route_ttl":              "redis-route-ttl",
 		"redis.push_channel":           "redis-push-channel",
 		"redis.push_users_channel":     "redis-push-users-channel",
 		"redis.push_group_channel":     "redis-push-group-channel",
 		"redis.push_broadcast_channel": "redis-push-broadcast-channel",
-		"jwt.secret":     "jwt-secret",
-		"jwt.expiration": "jwt-expiration",
+		"jwt.secret":                   "jwt-secret",
+		"jwt.expiration":               "jwt-expiration",
 	}
 	for key, name := range bindings {
 		if err := v.BindPFlag(key, fs.Lookup(name)); err != nil {
