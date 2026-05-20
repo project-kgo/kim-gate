@@ -32,7 +32,7 @@ func (r *JWTResolver) ResolveToken(ctx context.Context, token string) (string, e
 	}
 
 	claims := &KimClaims{}
-	parsed, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+	parsed, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
@@ -43,7 +43,7 @@ func (r *JWTResolver) ResolveToken(ctx context.Context, token string) (string, e
 	}
 
 	if r.expiration > 0 {
-		if claims.IssuedAt == nil {
+		if claims.IssuedAt == nil || claims.ExpiresAt == nil {
 			return "", ErrUnauthenticated
 		}
 		lifetime := claims.ExpiresAt.Time.Sub(claims.IssuedAt.Time)
