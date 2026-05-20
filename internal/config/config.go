@@ -39,6 +39,9 @@ type Config struct {
 	RedisPushUsersChannel     string
 	RedisPushGroupChannel     string
 	RedisPushBroadcastChannel string
+
+	JWTSecret     string
+	JWTExpiration time.Duration
 }
 
 func Load(args []string) (Config, error) {
@@ -60,6 +63,8 @@ func Load(args []string) (Config, error) {
 	fs.String("redis-push-users-channel", "", "redis users push pub/sub channel")
 	fs.String("redis-push-group-channel", "", "redis group push pub/sub channel")
 	fs.String("redis-push-broadcast-channel", "", "redis broadcast push pub/sub channel")
+	fs.String("jwt-secret", "", "jwt hmac secret key")
+	fs.Duration("jwt-expiration", 0, "max jwt token lifetime")
 	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
 		return Config{}, err
 	}
@@ -83,6 +88,8 @@ func Load(args []string) (Config, error) {
 		RedisPushUsersChannel:     v.GetString("redis.push_users_channel"),
 		RedisPushGroupChannel:     v.GetString("redis.push_group_channel"),
 		RedisPushBroadcastChannel: v.GetString("redis.push_broadcast_channel"),
+		JWTSecret:     v.GetString("jwt.secret"),
+		JWTExpiration: v.GetDuration("jwt.expiration"),
 	}
 
 	cfg.normalize()
@@ -106,6 +113,8 @@ func Defaults() Config {
 		RedisPushUsersChannel:     DefaultRedisPushChannel + pushUsersSuffix,
 		RedisPushGroupChannel:     DefaultRedisPushChannel + pushGroupSuffix,
 		RedisPushBroadcastChannel: DefaultRedisPushChannel + pushBroadcastSuffix,
+		JWTSecret:     "",
+		JWTExpiration: 0,
 	}
 }
 
@@ -123,6 +132,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("redis.push_users_channel", defaults.RedisPushUsersChannel)
 	v.SetDefault("redis.push_group_channel", defaults.RedisPushGroupChannel)
 	v.SetDefault("redis.push_broadcast_channel", defaults.RedisPushBroadcastChannel)
+	v.SetDefault("jwt.secret", defaults.JWTSecret)
+	v.SetDefault("jwt.expiration", defaults.JWTExpiration.String())
 }
 
 func bindEnv(v *viper.Viper) {
@@ -141,6 +152,8 @@ func bindEnv(v *viper.Viper) {
 	must(v.BindEnv("redis.push_users_channel", "KIM_GATE_REDIS_PUSH_USERS_CHANNEL"))
 	must(v.BindEnv("redis.push_group_channel", "KIM_GATE_REDIS_PUSH_GROUP_CHANNEL"))
 	must(v.BindEnv("redis.push_broadcast_channel", "KIM_GATE_REDIS_PUSH_BROADCAST_CHANNEL"))
+	must(v.BindEnv("jwt.secret", "KIM_GATE_JWT_SECRET"))
+	must(v.BindEnv("jwt.expiration", "KIM_GATE_JWT_EXPIRATION"))
 }
 
 func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
@@ -157,6 +170,8 @@ func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 		"redis.push_users_channel":     "redis-push-users-channel",
 		"redis.push_group_channel":     "redis-push-group-channel",
 		"redis.push_broadcast_channel": "redis-push-broadcast-channel",
+		"jwt.secret":     "jwt-secret",
+		"jwt.expiration": "jwt-expiration",
 	}
 	for key, name := range bindings {
 		if err := v.BindPFlag(key, fs.Lookup(name)); err != nil {
