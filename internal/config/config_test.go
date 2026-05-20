@@ -39,6 +39,12 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.RedisPushBroadcastChannel != DefaultRedisPushChannel+":broadcast" {
 		t.Fatalf("RedisPushBroadcastChannel = %q", cfg.RedisPushBroadcastChannel)
 	}
+	if cfg.JWTSecret != "" {
+		t.Fatalf("JWTSecret = %q, want empty", cfg.JWTSecret)
+	}
+	if cfg.JWTExpiration != 0 {
+		t.Fatalf("JWTExpiration = %s, want 0", cfg.JWTExpiration)
+	}
 }
 
 func TestLoadYAMLConfig(t *testing.T) {
@@ -62,6 +68,9 @@ redis:
   push_users_channel: "custom:users"
   push_group_channel: "custom:group"
   push_broadcast_channel: "custom:broadcast"
+jwt:
+  secret: "my-jwt-secret"
+  expiration: "1h"
 `), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
@@ -105,6 +114,12 @@ redis:
 	}
 	if cfg.RedisPushBroadcastChannel != "custom:broadcast" {
 		t.Fatalf("RedisPushBroadcastChannel = %q", cfg.RedisPushBroadcastChannel)
+	}
+	if cfg.JWTSecret != "my-jwt-secret" {
+		t.Fatalf("JWTSecret = %q", cfg.JWTSecret)
+	}
+	if cfg.JWTExpiration != 1*time.Hour {
+		t.Fatalf("JWTExpiration = %s", cfg.JWTExpiration)
 	}
 }
 
@@ -168,5 +183,11 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 	}
 	if cfg.RedisPushBroadcastChannel != "flag:broadcast" {
 		t.Fatalf("RedisPushBroadcastChannel = %q", cfg.RedisPushBroadcastChannel)
+	}
+	if cfg.JWTSecret != "env-jwt-secret" {
+		t.Fatalf("JWTSecret = %q", cfg.JWTSecret)
+	}
+	if cfg.JWTExpiration != 30*time.Minute {
+		t.Fatalf("JWTExpiration = %s", cfg.JWTExpiration)
 	}
 }
