@@ -34,6 +34,7 @@ service GatewayService {
   rpc CloseConnections(CloseConnectionsRequest) returns (CloseResponse);
   rpc GetOnline(GetOnlineRequest) returns (GetOnlineResponse);
   rpc GetUserConnections(GetUserConnectionsRequest) returns (GetUserConnectionsResponse);
+  rpc GetToken(GetTokenRequest) returns (GetTokenResponse);
 }
 
 message SendToUsersRequest {
@@ -105,4 +106,16 @@ message UserConnection {
 
 message GetUserConnectionsResponse {
   repeated UserConnection connections = 1;
+}
+
+message GetTokenRequest {
+  string app_id = 1;
+  string user_id = 2;
+  string platform = 3;
+  string br = 4;
+}
+
+message GetTokenResponse {
+  string token = 1;
+  int64 expires_at = 2;
 }

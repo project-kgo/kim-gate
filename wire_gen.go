@@ -45,7 +45,7 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	gatewayService, err := rpc.NewGatewayService(handler, userRouteStore, publisher)
+	gatewayService, err := rpc.NewGatewayService(handler, userRouteStore, publisher, jwtResolver)
 	if err != nil {
 		return nil, err
 	}

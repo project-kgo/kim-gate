@@ -7,7 +7,9 @@ import (
 	"log/slog"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/project-kgo/kim-gate/internal/auth"
 	"github.com/project-kgo/kim-gate/internal/data"
 	kimgatev1 "github.com/project-kgo/kim-gate/proto/kimgate/v1"
 	"github.com/project-kgo/signalg"
@@ -281,11 +283,67 @@ func newTestServiceWithPublisher(t *testing.T, store UserConnectionStore, publis
 	if err != nil {
 		t.Fatalf("NewHandler returned error: %v", err)
 	}
-	service, err := NewGatewayService(handler, store, publisher)
+	service, err := NewGatewayService(handler, store, publisher, newTestJWTResolver(t))
 	if err != nil {
 		t.Fatalf("NewGatewayService returned error: %v", err)
 	}
 	return service
+}
+
+func newTestJWTResolver(t *testing.T) *auth.JWTResolver {
+	t.Helper()
+	return auth.NewJWTResolver("test-secret", 1*time.Hour)
+}
+
+func TestGatewayServiceGetToken(t *testing.T) {
+	service := newTestService(t)
+
+	resp, err := service.GetToken(context.Background(), &kimgatev1.GetTokenRequest{
+		AppId:    "myapp",
+		UserId:   "user123",
+		Platform: "ios",
+		Br:       "iPhone14,2",
+	})
+	if err != nil {
+		t.Fatalf("GetToken returned error: %v", err)
+	}
+	if resp.Token == "" {
+		t.Fatal("token is empty")
+	}
+	if resp.ExpiresAt <= 0 {
+		t.Fatal("expires_at is zero or negative")
+	}
+
+	resolved, err := service.jwtResolver.ResolveToken(context.Background(), resp.Token)
+	if err != nil {
+		t.Fatalf("ResolveToken returned error: %v", err)
+	}
+	if resolved != "myapp:user123" {
+		t.Fatalf("resolved = %q, want myapp:user123", resolved)
+	}
+}
+
+func TestGatewayServiceGetToken_Validation(t *testing.T) {
+	service := newTestService(t)
+
+	tests := []struct {
+		name string
+		req  *kimgatev1.GetTokenRequest
+	}{
+		{name: "nil request", req: nil},
+		{name: "empty app_id", req: &kimgatev1.GetTokenRequest{UserId: "u1"}},
+		{name: "empty user_id", req: &kimgatev1.GetTokenRequest{AppId: "a1"}},
+		{name: "both empty", req: &kimgatev1.GetTokenRequest{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := service.GetToken(context.Background(), tt.req)
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("code = %s, want %s, err=%v", status.Code(err), codes.InvalidArgument, err)
+			}
+		})
+	}
 }
 
 type testHub struct{}

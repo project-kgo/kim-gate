@@ -15,8 +15,10 @@ type JWTResolver struct {
 
 type KimClaims struct {
 	jwt.RegisteredClaims
-	UserID string `json:"user_id"`
-	AppID  string `json:"app_id"`
+	UserID   string `json:"user_id"`
+	AppID    string `json:"app_id"`
+	Platform string `json:"platform,omitempty"`
+	Br       string `json:"br,omitempty"`
 }
 
 func NewJWTResolver(secret string, expiration time.Duration) *JWTResolver {
@@ -24,6 +26,33 @@ func NewJWTResolver(secret string, expiration time.Duration) *JWTResolver {
 		secret:     []byte(secret),
 		expiration: expiration,
 	}
+}
+
+func (r *JWTResolver) GenerateToken(_ context.Context, appID, userID, platform, br string) (string, int64, error) {
+	if len(r.secret) == 0 {
+		return "", 0, ErrUnauthenticated
+	}
+	if appID == "" || userID == "" {
+		return "", 0, fmt.Errorf("app_id and user_id are required")
+	}
+	now := time.Now()
+	exp := now.Add(r.expiration)
+	claims := KimClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(exp),
+		},
+		UserID:   userID,
+		AppID:    appID,
+		Platform: platform,
+		Br:       br,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(r.secret)
+	if err != nil {
+		return "", 0, fmt.Errorf("sign token: %w", err)
+	}
+	return signed, exp.Unix(), nil
 }
 
 func (r *JWTResolver) ResolveToken(ctx context.Context, token string) (string, error) {

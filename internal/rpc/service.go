@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/project-kgo/kim-gate/internal/auth"
 	"github.com/project-kgo/kim-gate/internal/data"
 	kimgatev1 "github.com/project-kgo/kim-gate/proto/kimgate/v1"
 	"github.com/project-kgo/signalg"
@@ -26,9 +27,10 @@ type GatewayService struct {
 	handler         *signalg.Handler
 	connectionStore UserConnectionStore
 	publisher       PushPublisher
+	jwtResolver     *auth.JWTResolver
 }
 
-func NewGatewayService(handler *signalg.Handler, connectionStore UserConnectionStore, publisher PushPublisher) (*GatewayService, error) {
+func NewGatewayService(handler *signalg.Handler, connectionStore UserConnectionStore, publisher PushPublisher, jwtResolver *auth.JWTResolver) (*GatewayService, error) {
 	if handler == nil {
 		return nil, errors.New("signalg handler is required")
 	}
@@ -38,10 +40,14 @@ func NewGatewayService(handler *signalg.Handler, connectionStore UserConnectionS
 	if publisher == nil {
 		return nil, errors.New("push publisher is required")
 	}
+	if jwtResolver == nil {
+		return nil, errors.New("jwt resolver is required")
+	}
 	return &GatewayService{
 		handler:         handler,
 		connectionStore: connectionStore,
 		publisher:       publisher,
+		jwtResolver:     jwtResolver,
 	}, nil
 }
 
@@ -211,6 +217,32 @@ func (s *GatewayService) GetUserConnections(ctx context.Context, req *kimgatev1.
 		})
 	}
 	return resp, nil
+}
+
+func (s *GatewayService) GetToken(ctx context.Context, req *kimgatev1.GetTokenRequest) (*kimgatev1.GetTokenResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	appID := strings.TrimSpace(req.AppId)
+	userID := strings.TrimSpace(req.UserId)
+	if appID == "" {
+		return nil, status.Error(codes.InvalidArgument, "app_id is required")
+	}
+	if userID == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	token, expiresAt, err := s.jwtResolver.GenerateToken(ctx, appID, userID, req.Platform, req.Br)
+	if err != nil {
+		if errors.Is(err, auth.ErrUnauthenticated) {
+			return nil, status.Error(codes.Unauthenticated, err.Error())
+		}
+		return nil, status.Error(codes.Internal, fmt.Sprintf("generate token: %v", err))
+	}
+	return &kimgatev1.GetTokenResponse{
+		Token:     token,
+		ExpiresAt: expiresAt,
+	}, nil
 }
 
 func validateMethod(method string) error {
