@@ -19,9 +19,9 @@ import (
 
 func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	wire.Build(
-		auth.NewRejectResolver,
+		ProvideJWTResolver,
 		auth.NewUserProvider,
-		wire.Bind(new(auth.TokenResolver), new(*auth.RejectResolver)),
+		wire.Bind(new(auth.TokenResolver), new(*auth.JWTResolver)),
 		wire.Bind(new(signalg.UserProvider), new(*auth.UserProvider)),
 		gateway.NewServerID,
 		gateway.ServerIDString,
@@ -40,4 +40,8 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 		app.New,
 	)
 	return nil, nil
+}
+
+func ProvideJWTResolver(cfg config.Config) *auth.JWTResolver {
+	return auth.NewJWTResolver(cfg.JWTSecret, cfg.JWTExpiration)
 }

@@ -20,8 +20,8 @@ import (
 // Injectors from wire.go:
 
 func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
-	rejectResolver := auth.NewRejectResolver()
-	userProvider := auth.NewUserProvider(rejectResolver)
+	jwtResolver := ProvideJWTResolver(cfg)
+	userProvider := auth.NewUserProvider(jwtResolver)
 	dataData, err := data.New(cfg, logger)
 	if err != nil {
 		return nil, err
@@ -59,4 +59,10 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	}
 	appApp := app.New(cfg, logger, hertz, server, dataData, subscriber, userRouteStore)
 	return appApp, nil
+}
+
+// wire.go:
+
+func ProvideJWTResolver(cfg config.Config) *auth.JWTResolver {
+	return auth.NewJWTResolver(cfg.JWTSecret, cfg.JWTExpiration)
 }
