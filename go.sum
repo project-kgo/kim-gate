@@ -35,6 +35,8 @@ github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
 github.com/go-viper/mapstructure/v2 v2.4.0 h1:EBsztssimR/CONLSZZ04E8qAkxNYq4Qp9LvH92wZUgs=
 github.com/go-viper/mapstructure/v2 v2.4.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
+github.com/golang-jwt/jwt/v5 v5.3.1 h1:kYf81DTWFe7t+1VvL7eS+jKFVWaUnK9cB1qbwn63YCY=
+github.com/golang-jwt/jwt/v5 v5.3.1/go.mod h1:fxCRLWMO43lRc8nhHWY6LGqRcf+1gQWArsqaEUEa5bE=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
@@ -70,6 +72,8 @@ github.com/project-kgo/signalg v0.0.0-20260517065819-352d93b118cf h1:GFjpUFzlI2Y
 github.com/project-kgo/signalg v0.0.0-20260517065819-352d93b118cf/go.mod h1:X7dzfM+v2FTS4QC/2xnaZa2WDsFbc+//U6TgY1rgZTo=
 github.com/project-kgo/signalg v0.0.0-20260517083403-a41d35a78865 h1:4o5HgA+MWReb8nFU0fQulaTuGzmp10Aj07Pt+7tT1Sc=
 github.com/project-kgo/signalg v0.0.0-20260517083403-a41d35a78865/go.mod h1:X7dzfM+v2FTS4QC/2xnaZa2WDsFbc+//U6TgY1rgZTo=
+github.com/project-kgo/signalg v0.0.0-20260520075145-140d9221dd11 h1:al9yZzGUpcASet/9lZpOO8xoXdwm/YJD96yjIrXoqqo=
+github.com/project-kgo/signalg v0.0.0-20260520075145-140d9221dd11/go.mod h1:X7dzfM+v2FTS4QC/2xnaZa2WDsFbc+//U6TgY1rgZTo=
 github.com/redis/go-redis/v9 v9.19.0 h1:XPVaaPSnG6RhYf7p+rmSa9zZfeVAnWsH5h3lxthOm/k=
 github.com/redis/go-redis/v9 v9.19.0/go.mod h1:v/M13XI1PVCDcm01VtPFOADfZtHf8YW3baQf57KlIkA=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=

@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/cloudwego/hertz v0.10.4
 	github.com/google/wire v0.7.0
-	github.com/project-kgo/signalg v0.0.0-20260517083403-a41d35a78865
+	github.com/project-kgo/signalg v0.0.0-20260520075145-140d9221dd11
 	github.com/redis/go-redis/v9 v9.19.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -24,6 +24,7 @@ require (
 	github.com/coder/websocket v1.8.14 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/kanengo/ku v0.0.0-20260509080754-8b6ffd5c8b59 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/matoous/go-nanoid/v2 v2.1.0 // indirect
