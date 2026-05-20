@@ -18,7 +18,7 @@ func TestExtractTokenPrefersHeader(t *testing.T) {
 }
 
 func TestExtractTokenFallsBackToQuery(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/signalg?access-token=query-token", nil)
+	req := httptest.NewRequest(http.MethodGet, "/signalg?access_token=query-token", nil)
 
 	if got := ExtractToken(req); got != "query-token" {
 		t.Fatalf("ExtractToken = %q, want query-token", got)
