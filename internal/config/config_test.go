@@ -119,6 +119,8 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 	t.Setenv("KIM_GATE_REDIS_PUSH_USERS_CHANNEL", "env:users")
 	t.Setenv("KIM_GATE_REDIS_PUSH_GROUP_CHANNEL", "env:group")
 	t.Setenv("KIM_GATE_REDIS_PUSH_BROADCAST_CHANNEL", "env:broadcast")
+	t.Setenv("KIM_GATE_JWT_SECRET", "env-jwt-secret")
+	t.Setenv("KIM_GATE_JWT_EXPIRATION", "30m")
 
 	cfg, err := Load([]string{
 		"-http-addr", ":7777",

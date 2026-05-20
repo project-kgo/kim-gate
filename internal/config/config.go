@@ -200,6 +200,7 @@ func readConfigFile(v *viper.Viper, configPath string) error {
 }
 
 func (c *Config) normalize() {
+	c.JWTSecret = strings.TrimSpace(c.JWTSecret)
 	c.HTTPAddr = strings.TrimSpace(c.HTTPAddr)
 	c.WebSocketPath = normalizePath(c.WebSocketPath)
 	c.GRPCSocket = strings.TrimSpace(c.GRPCSocket)
