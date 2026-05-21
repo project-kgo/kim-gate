@@ -47,7 +47,7 @@ func NewServer(cfg config.Config, service *GatewayService, logger *slog.Logger, 
 		registry: registry,
 		instance: discovery.ServiceInstance{
 			ID:      instanceID,
-			Name:    cfg.ETCDServiceName,
+			Name:    etcdServiceName(cfg),
 			Address: cfg.GRPCAddr,
 		},
 		logger: logger,
@@ -121,4 +121,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.logger.Info("grpc server shut down", slog.String("addr", s.addr))
 	}
 	return nil
+}
+
+func etcdServiceName(cfg config.Config) string {
+	if cfg.Env == "" {
+		return cfg.ETCDServiceName
+	}
+	return cfg.ETCDServiceName + "-" + cfg.Env
 }

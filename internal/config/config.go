@@ -19,6 +19,7 @@ const (
 	DefaultETCDTTL          = 15 * time.Second
 	DefaultETCDUsername     = ""
 	DefaultETCDPassword     = ""
+	DefaultEnv              = ""
 	DefaultShutdownTimeout  = 10 * time.Second
 	DefaultPingInterval     = 30 * time.Second
 	DefaultPingTimeout      = 60 * time.Second
@@ -40,6 +41,7 @@ type Config struct {
 	ETCDUsername     string
 	ETCDPassword     string
 	ETCDTTL          time.Duration
+	Env              string
 	ShutdownTimeout  time.Duration
 	PingInterval     time.Duration
 	PingTimeout      time.Duration
@@ -81,6 +83,7 @@ func Load(args []string) (Config, error) {
 	fs.Duration("etcd-ttl", 0, "etcd lease ttl")
 	fs.String("etcd-username", "", "etcd username")
 	fs.String("etcd-password", "", "etcd password")
+	fs.String("env", "", "deployment environment (e.g., dev, staging, prod)")
 	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
 		return Config{}, err
 	}
@@ -100,6 +103,7 @@ func Load(args []string) (Config, error) {
 		ETCDUsername:              v.GetString("etcd.username"),
 		ETCDPassword:              v.GetString("etcd.password"),
 		ETCDTTL:                   v.GetDuration("etcd.ttl"),
+		Env:                       v.GetString("env"),
 		ShutdownTimeout:           v.GetDuration("shutdown.timeout"),
 		PingInterval:              v.GetDuration("signalg.ping_interval"),
 		PingTimeout:               v.GetDuration("signalg.ping_timeout"),
@@ -130,6 +134,7 @@ func Defaults() Config {
 		ETCDUsername:              DefaultETCDUsername,
 		ETCDPassword:              DefaultETCDPassword,
 		ETCDTTL:                   DefaultETCDTTL,
+		Env:                       DefaultEnv,
 		ShutdownTimeout:           DefaultShutdownTimeout,
 		PingInterval:              DefaultPingInterval,
 		PingTimeout:               DefaultPingTimeout,
@@ -154,6 +159,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("etcd.ttl", defaults.ETCDTTL.String())
 	v.SetDefault("etcd.username", defaults.ETCDUsername)
 	v.SetDefault("etcd.password", defaults.ETCDPassword)
+	v.SetDefault("env", defaults.Env)
 	v.SetDefault("shutdown.timeout", defaults.ShutdownTimeout.String())
 	v.SetDefault("signalg.ping_interval", defaults.PingInterval.String())
 	v.SetDefault("signalg.ping_timeout", defaults.PingTimeout.String())
@@ -179,6 +185,7 @@ func bindEnv(v *viper.Viper) {
 	must(v.BindEnv("etcd.ttl", "KIM_GATE_ETCD_TTL"))
 	must(v.BindEnv("etcd.username", "KIM_GATE_ETCD_USERNAME"))
 	must(v.BindEnv("etcd.password", "KIM_GATE_ETCD_PASSWORD"))
+	must(v.BindEnv("env", "KIM_GATE_ENV"))
 	must(v.BindEnv("shutdown.timeout", "KIM_GATE_SHUTDOWN_TIMEOUT"))
 	must(v.BindEnv("signalg.ping_interval", "KIM_GATE_PING_INTERVAL"))
 	must(v.BindEnv("signalg.ping_timeout", "KIM_GATE_PING_TIMEOUT"))
@@ -202,6 +209,7 @@ func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 		"etcd.ttl":                     "etcd-ttl",
 		"etcd.username":                "etcd-username",
 		"etcd.password":                "etcd-password",
+		"env":                          "env",
 		"shutdown.timeout":             "shutdown-timeout",
 		"signalg.ping_interval":        "ping-interval",
 		"signalg.ping_timeout":         "ping-timeout",
@@ -258,6 +266,7 @@ func (c *Config) normalize() {
 	}
 	c.ETCDUsername = strings.TrimSpace(c.ETCDUsername)
 	c.ETCDPassword = strings.TrimSpace(c.ETCDPassword)
+	c.Env = strings.TrimSpace(c.Env)
 	c.RedisDSN = strings.TrimSpace(c.RedisDSN)
 	c.RedisPushChannel = strings.TrimSpace(c.RedisPushChannel)
 	c.RedisPushUsersChannel = strings.TrimSpace(c.RedisPushUsersChannel)
