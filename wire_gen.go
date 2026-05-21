@@ -12,6 +12,7 @@ import (
 	"github.com/project-kgo/kim-gate/internal/cluster"
 	"github.com/project-kgo/kim-gate/internal/config"
 	"github.com/project-kgo/kim-gate/internal/data"
+	"github.com/project-kgo/kim-gate/internal/discovery/etcd"
 	"github.com/project-kgo/kim-gate/internal/gateway"
 	"github.com/project-kgo/kim-gate/internal/rpc"
 	"log/slog"
@@ -49,7 +50,12 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	server, err := rpc.NewServer(cfg, gatewayService, logger)
+	etcdConfig := ProvideEtcdConfig(cfg)
+	registry, err := etcd.New(etcdConfig)
+	if err != nil {
+		return nil, err
+	}
+	server, err := rpc.NewServer(cfg, gatewayService, logger, registry, string2)
 	if err != nil {
 		return nil, err
 	}
@@ -65,4 +71,14 @@ func Initialize(cfg config.Config, logger *slog.Logger) (*app.App, error) {
 
 func ProvideJWTResolver(cfg config.Config) *auth.JWTResolver {
 	return auth.NewJWTResolver(cfg.JWTSecret, cfg.JWTExpiration)
+}
+
+func ProvideEtcdConfig(cfg config.Config) etcd.Config {
+	return etcd.Config{
+		Endpoints:   cfg.ETCDEndpoints,
+		ServiceName: cfg.ETCDServiceName,
+		Username:    cfg.ETCDUsername,
+		Password:    cfg.ETCDPassword,
+		TTL:         cfg.ETCDTTL,
+	}
 }

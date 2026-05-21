@@ -2,11 +2,8 @@ package rpc
 
 import (
 	"context"
-	"errors"
 	"io"
 	"log/slog"
-	"os"
-	"syscall"
 	"testing"
 	"time"
 
@@ -16,15 +13,12 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func TestServerRegistersGRPCHealthOverUnixSocket(t *testing.T) {
+func TestServerRegistersGRPCHealth(t *testing.T) {
 	cfg := config.Defaults()
-	cfg.GRPCSocket = tempSocketPath(t, "health.sock")
+	cfg.GRPCAddr = "127.0.0.1:0"
 
-	server, err := NewServer(cfg, newTestService(t), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	server, err := NewServer(cfg, newTestService(t), slog.New(slog.NewTextHandler(io.Discard, nil)), &noopRegistry{}, "integ-test-instance")
 	if err != nil {
-		if isPermissionError(err) {
-			t.Skipf("unix socket is not permitted in this environment: %v", err)
-		}
 		t.Fatalf("NewServer returned error: %v", err)
 	}
 	server.Start()
@@ -41,12 +35,12 @@ func TestServerRegistersGRPCHealthOverUnixSocket(t *testing.T) {
 
 	conn, err := grpc.DialContext(
 		ctx,
-		"unix://"+cfg.GRPCSocket,
+		server.listener.Addr().String(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	)
 	if err != nil {
-		t.Fatalf("dial grpc unix socket: %v", err)
+		t.Fatalf("dial grpc: %v", err)
 	}
 	defer conn.Close()
 
@@ -57,8 +51,4 @@ func TestServerRegistersGRPCHealthOverUnixSocket(t *testing.T) {
 	if resp.Status != healthpb.HealthCheckResponse_SERVING {
 		t.Fatalf("health status = %s, want SERVING", resp.Status)
 	}
-}
-
-func isPermissionError(err error) bool {
-	return errors.Is(err, os.ErrPermission) || errors.Is(err, syscall.EPERM)
 }

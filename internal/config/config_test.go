@@ -18,8 +18,20 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.WebSocketPath != DefaultWebSocketPath {
 		t.Fatalf("WebSocketPath = %q, want %q", cfg.WebSocketPath, DefaultWebSocketPath)
 	}
-	if cfg.GRPCSocket != DefaultGRPCSocket {
-		t.Fatalf("GRPCSocket = %q, want %q", cfg.GRPCSocket, DefaultGRPCSocket)
+	if cfg.GRPCAddr != DefaultGRPCAddr {
+		t.Fatalf("GRPCAddr = %q, want %q", cfg.GRPCAddr, DefaultGRPCAddr)
+	}
+	if cfg.ETCDEndpointsStr != DefaultETCDEndpoints {
+		t.Fatalf("ETCDEndpoints = %q, want %q", cfg.ETCDEndpointsStr, DefaultETCDEndpoints)
+	}
+	if len(cfg.ETCDEndpoints) != 1 || cfg.ETCDEndpoints[0] != "localhost:2379" {
+		t.Fatalf("ETCDEndpoints = %v, want [localhost:2379]", cfg.ETCDEndpoints)
+	}
+	if cfg.ETCDServiceName != DefaultETCDServiceName {
+		t.Fatalf("ETCDServiceName = %q, want %q", cfg.ETCDServiceName, DefaultETCDServiceName)
+	}
+	if cfg.ETCDTTL != DefaultETCDTTL {
+		t.Fatalf("ETCDTTL = %s, want %s", cfg.ETCDTTL, DefaultETCDTTL)
 	}
 	if cfg.RedisDSN != DefaultRedisDSN {
 		t.Fatalf("RedisDSN = %q, want %q", cfg.RedisDSN, DefaultRedisDSN)
@@ -42,8 +54,8 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.JWTSecret != "" {
 		t.Fatalf("JWTSecret = %q, want empty", cfg.JWTSecret)
 	}
-	if cfg.JWTExpiration != 0 {
-		t.Fatalf("JWTExpiration = %s, want 0", cfg.JWTExpiration)
+	if cfg.JWTExpiration != 4320*time.Hour {
+		t.Fatalf("JWTExpiration = %s, want %s", cfg.JWTExpiration, 4320*time.Hour)
 	}
 }
 
@@ -55,7 +67,11 @@ http:
 websocket:
   path: "ws"
 grpc:
-  socket: "/tmp/yaml.sock"
+  addr: ":9991"
+etcd:
+  endpoints: "host1:2379,host2:2379"
+  service: "test-gate"
+  ttl: "30s"
 shutdown:
   timeout: "3s"
 signalg:
@@ -85,8 +101,20 @@ jwt:
 	if cfg.WebSocketPath != "/ws" {
 		t.Fatalf("WebSocketPath = %q", cfg.WebSocketPath)
 	}
-	if cfg.GRPCSocket != "/tmp/yaml.sock" {
-		t.Fatalf("GRPCSocket = %q", cfg.GRPCSocket)
+	if cfg.GRPCAddr != ":9991" {
+		t.Fatalf("GRPCAddr = %q", cfg.GRPCAddr)
+	}
+	if cfg.ETCDEndpointsStr != "host1:2379,host2:2379" {
+		t.Fatalf("ETCDEndpointsStr = %q", cfg.ETCDEndpointsStr)
+	}
+	if len(cfg.ETCDEndpoints) != 2 || cfg.ETCDEndpoints[0] != "host1:2379" || cfg.ETCDEndpoints[1] != "host2:2379" {
+		t.Fatalf("ETCDEndpoints = %v", cfg.ETCDEndpoints)
+	}
+	if cfg.ETCDServiceName != "test-gate" {
+		t.Fatalf("ETCDServiceName = %q", cfg.ETCDServiceName)
+	}
+	if cfg.ETCDTTL != 30*time.Second {
+		t.Fatalf("ETCDTTL = %s", cfg.ETCDTTL)
 	}
 	if cfg.ShutdownTimeout != 3*time.Second {
 		t.Fatalf("ShutdownTimeout = %s", cfg.ShutdownTimeout)
@@ -126,7 +154,10 @@ jwt:
 func TestLoadEnvAndFlagOverride(t *testing.T) {
 	t.Setenv("KIM_GATE_HTTP_ADDR", ":9999")
 	t.Setenv("KIM_GATE_WS_PATH", "ws")
-	t.Setenv("KIM_GATE_GRPC_SOCKET", "/tmp/env.sock")
+	t.Setenv("KIM_GATE_GRPC_ADDR", ":9991")
+	t.Setenv("KIM_GATE_ETCD_ENDPOINTS", "env1:2379,env2:2379")
+	t.Setenv("KIM_GATE_ETCD_SERVICE", "env-gate")
+	t.Setenv("KIM_GATE_ETCD_TTL", "45s")
 	t.Setenv("KIM_GATE_SHUTDOWN_TIMEOUT", "3s")
 	t.Setenv("KIM_GATE_REDIS_DSN", "redis://env.example.com:6379/1")
 	t.Setenv("KIM_GATE_REDIS_ROUTE_TTL", "5m")
@@ -139,7 +170,10 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 
 	cfg, err := Load([]string{
 		"-http-addr", ":7777",
-		"-grpc-socket", "/tmp/flag.sock",
+		"-grpc-addr", ":7771",
+		"-etcd-endpoints", "flag1:2379",
+		"-etcd-service", "flag-gate",
+		"-etcd-ttl", "20s",
 		"-ping-interval", "2s",
 		"-redis-dsn", "redis://flag.example.com:6379/3",
 		"-redis-route-ttl", "6m",
@@ -157,8 +191,20 @@ func TestLoadEnvAndFlagOverride(t *testing.T) {
 	if cfg.WebSocketPath != "/ws" {
 		t.Fatalf("WebSocketPath = %q", cfg.WebSocketPath)
 	}
-	if cfg.GRPCSocket != "/tmp/flag.sock" {
-		t.Fatalf("GRPCSocket = %q", cfg.GRPCSocket)
+	if cfg.GRPCAddr != ":7771" {
+		t.Fatalf("GRPCAddr = %q", cfg.GRPCAddr)
+	}
+	if cfg.ETCDEndpointsStr != "flag1:2379" {
+		t.Fatalf("ETCDEndpointsStr = %q", cfg.ETCDEndpointsStr)
+	}
+	if len(cfg.ETCDEndpoints) != 1 || cfg.ETCDEndpoints[0] != "flag1:2379" {
+		t.Fatalf("ETCDEndpoints = %v", cfg.ETCDEndpoints)
+	}
+	if cfg.ETCDServiceName != "flag-gate" {
+		t.Fatalf("ETCDServiceName = %q", cfg.ETCDServiceName)
+	}
+	if cfg.ETCDTTL != 20*time.Second {
+		t.Fatalf("ETCDTTL = %s", cfg.ETCDTTL)
 	}
 	if cfg.ShutdownTimeout != 3*time.Second {
 		t.Fatalf("ShutdownTimeout = %s", cfg.ShutdownTimeout)

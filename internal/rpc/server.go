@@ -6,32 +6,30 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/project-kgo/kim-gate/internal/config"
+	"github.com/project-kgo/kim-gate/internal/discovery"
 	kimgatev1 "github.com/project-kgo/kim-gate/proto/kimgate/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-const socketPermission os.FileMode = 0o600
-
 type Server struct {
 	server   *grpc.Server
 	listener net.Listener
-	path     string
+	addr     string
+	registry discovery.ServiceRegistry
+	instance discovery.ServiceInstance
 	logger   *slog.Logger
 	done     chan error
 }
 
-func NewServer(cfg config.Config, service *GatewayService, logger *slog.Logger) (*Server, error) {
-	listener, err := ListenUnix(cfg.GRPCSocket)
+func NewServer(cfg config.Config, service *GatewayService, logger *slog.Logger, registry discovery.ServiceRegistry, instanceID string) (*Server, error) {
+	listener, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listen grpc tcp %s: %w", cfg.GRPCAddr, err)
 	}
 
 	grpcServer := grpc.NewServer()
@@ -45,40 +43,22 @@ func NewServer(cfg config.Config, service *GatewayService, logger *slog.Logger) 
 	return &Server{
 		server:   grpcServer,
 		listener: listener,
-		path:     cfg.GRPCSocket,
-		logger:   logger,
-		done:     make(chan error, 1),
+		addr:     listener.Addr().String(),
+		registry: registry,
+		instance: discovery.ServiceInstance{
+			ID:      instanceID,
+			Name:    cfg.ETCDServiceName,
+			Address: cfg.GRPCAddr,
+		},
+		logger: logger,
+		done:   make(chan error, 1),
 	}, nil
-}
-
-func ListenUnix(socketPath string) (net.Listener, error) {
-	socketPath = strings.TrimSpace(socketPath)
-	if socketPath == "" {
-		return nil, errors.New("grpc socket path is required")
-	}
-	if err := os.MkdirAll(filepath.Dir(socketPath), 0o755); err != nil {
-		return nil, fmt.Errorf("create grpc socket dir: %w", err)
-	}
-	if err := prepareSocketPath(socketPath); err != nil {
-		return nil, err
-	}
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return nil, fmt.Errorf("listen grpc unix socket: %w", err)
-	}
-	if err := os.Chmod(socketPath, socketPermission); err != nil {
-		_ = listener.Close()
-		_ = os.Remove(socketPath)
-		return nil, fmt.Errorf("chmod grpc socket: %w", err)
-	}
-	return listener, nil
 }
 
 func (s *Server) Start() {
 	go func() {
 		if s.logger != nil {
-			s.logger.Info("grpc server started", slog.String("socket", s.path))
+			s.logger.Info("grpc server started", slog.String("addr", s.addr))
 		}
 		err := s.server.Serve(s.listener)
 		if errors.Is(err, grpc.ErrServerStopped) {
@@ -86,6 +66,20 @@ func (s *Server) Start() {
 		}
 		s.done <- err
 	}()
+
+	if s.registry != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := s.registry.Register(ctx, s.instance); err != nil && s.logger != nil {
+				s.logger.Error("failed to register with service registry",
+					slog.Any("error", err),
+					slog.String("service", s.instance.Name),
+					slog.String("instance", s.instance.ID),
+				)
+			}
+		}()
+	}
 }
 
 func (s *Server) Done() <-chan error {
@@ -96,6 +90,13 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if s == nil || s.server == nil {
 		return nil
 	}
+
+	if s.registry != nil {
+		if err := s.registry.Deregister(ctx); err != nil && s.logger != nil {
+			s.logger.Error("failed to deregister from service registry", slog.Any("error", err))
+		}
+	}
+
 	stopped := make(chan struct{})
 	go func() {
 		s.server.GracefulStop()
@@ -110,34 +111,14 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return ctx.Err()
 	}
 
-	if s.path != "" {
-		_ = os.Remove(s.path)
+	if s.registry != nil {
+		if err := s.registry.Close(); err != nil && s.logger != nil {
+			s.logger.Error("failed to close service registry", slog.Any("error", err))
+		}
 	}
+
 	if s.logger != nil {
-		s.logger.Info("grpc server shut down", slog.String("socket", s.path))
-	}
-	return nil
-}
-
-func prepareSocketPath(socketPath string) error {
-	info, err := os.Lstat(socketPath)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("stat grpc socket: %w", err)
-	}
-	if info.Mode()&os.ModeSocket == 0 {
-		return fmt.Errorf("grpc socket path exists and is not a socket: %s", socketPath)
-	}
-
-	conn, err := net.DialTimeout("unix", socketPath, 200*time.Millisecond)
-	if err == nil {
-		_ = conn.Close()
-		return fmt.Errorf("grpc socket already in use: %s", socketPath)
-	}
-	if err := os.Remove(socketPath); err != nil {
-		return fmt.Errorf("remove stale grpc socket: %w", err)
+		s.logger.Info("grpc server shut down", slog.String("addr", s.addr))
 	}
 	return nil
 }

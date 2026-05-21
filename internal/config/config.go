@@ -13,7 +13,12 @@ import (
 const (
 	DefaultHTTPAddr         = ":8888"
 	DefaultWebSocketPath    = "/hub"
-	DefaultGRPCSocket       = "/tmp/kim-gate.sock"
+	DefaultGRPCAddr         = ":9090"
+	DefaultETCDEndpoints    = "localhost:2379"
+	DefaultETCDServiceName  = "kim-gate"
+	DefaultETCDTTL          = 15 * time.Second
+	DefaultETCDUsername     = ""
+	DefaultETCDPassword     = ""
 	DefaultShutdownTimeout  = 10 * time.Second
 	DefaultPingInterval     = 30 * time.Second
 	DefaultPingTimeout      = 60 * time.Second
@@ -26,12 +31,18 @@ const (
 )
 
 type Config struct {
-	HTTPAddr        string
-	WebSocketPath   string
-	GRPCSocket      string
-	ShutdownTimeout time.Duration
-	PingInterval    time.Duration
-	PingTimeout     time.Duration
+	HTTPAddr         string
+	WebSocketPath    string
+	GRPCAddr         string
+	ETCDEndpointsStr string
+	ETCDEndpoints    []string
+	ETCDServiceName  string
+	ETCDUsername     string
+	ETCDPassword     string
+	ETCDTTL          time.Duration
+	ShutdownTimeout  time.Duration
+	PingInterval     time.Duration
+	PingTimeout      time.Duration
 
 	RedisDSN                  string
 	RedisRouteTTL             time.Duration
@@ -53,7 +64,7 @@ func Load(args []string) (Config, error) {
 	fs.String("config", "", "config file path")
 	fs.String("http-addr", "", "hertz listen address")
 	fs.String("ws-path", "", "websocket path")
-	fs.String("grpc-socket", "", "grpc unix domain socket path")
+	fs.String("grpc-addr", "", "grpc tcp listen address")
 	fs.Duration("shutdown-timeout", 0, "graceful shutdown timeout")
 	fs.Duration("ping-interval", 0, "signalg ping interval")
 	fs.Duration("ping-timeout", 0, "signalg ping timeout")
@@ -65,6 +76,11 @@ func Load(args []string) (Config, error) {
 	fs.String("redis-push-broadcast-channel", "", "redis broadcast push pub/sub channel")
 	fs.String("jwt-secret", "", "jwt hmac secret key")
 	fs.Duration("jwt-expiration", 0, "max jwt token lifetime")
+	fs.String("etcd-endpoints", "", "comma-separated etcd endpoints")
+	fs.String("etcd-service", "", "service name for etcd registration")
+	fs.Duration("etcd-ttl", 0, "etcd lease ttl")
+	fs.String("etcd-username", "", "etcd username")
+	fs.String("etcd-password", "", "etcd password")
 	if err := fs.Parse(normalizeFlagArgs(args)); err != nil {
 		return Config{}, err
 	}
@@ -78,7 +94,12 @@ func Load(args []string) (Config, error) {
 	cfg := Config{
 		HTTPAddr:                  v.GetString("http.addr"),
 		WebSocketPath:             v.GetString("websocket.path"),
-		GRPCSocket:                v.GetString("grpc.socket"),
+		GRPCAddr:                  v.GetString("grpc.addr"),
+		ETCDEndpointsStr:          v.GetString("etcd.endpoints"),
+		ETCDServiceName:           v.GetString("etcd.service"),
+		ETCDUsername:              v.GetString("etcd.username"),
+		ETCDPassword:              v.GetString("etcd.password"),
+		ETCDTTL:                   v.GetDuration("etcd.ttl"),
 		ShutdownTimeout:           v.GetDuration("shutdown.timeout"),
 		PingInterval:              v.GetDuration("signalg.ping_interval"),
 		PingTimeout:               v.GetDuration("signalg.ping_timeout"),
@@ -103,7 +124,12 @@ func Defaults() Config {
 	return Config{
 		HTTPAddr:                  DefaultHTTPAddr,
 		WebSocketPath:             DefaultWebSocketPath,
-		GRPCSocket:                DefaultGRPCSocket,
+		GRPCAddr:                  DefaultGRPCAddr,
+		ETCDEndpointsStr:          DefaultETCDEndpoints,
+		ETCDServiceName:           DefaultETCDServiceName,
+		ETCDUsername:              DefaultETCDUsername,
+		ETCDPassword:              DefaultETCDPassword,
+		ETCDTTL:                   DefaultETCDTTL,
 		ShutdownTimeout:           DefaultShutdownTimeout,
 		PingInterval:              DefaultPingInterval,
 		PingTimeout:               DefaultPingTimeout,
@@ -122,7 +148,12 @@ func setDefaults(v *viper.Viper) {
 	defaults := Defaults()
 	v.SetDefault("http.addr", defaults.HTTPAddr)
 	v.SetDefault("websocket.path", defaults.WebSocketPath)
-	v.SetDefault("grpc.socket", defaults.GRPCSocket)
+	v.SetDefault("grpc.addr", defaults.GRPCAddr)
+	v.SetDefault("etcd.endpoints", defaults.ETCDEndpointsStr)
+	v.SetDefault("etcd.service", defaults.ETCDServiceName)
+	v.SetDefault("etcd.ttl", defaults.ETCDTTL.String())
+	v.SetDefault("etcd.username", defaults.ETCDUsername)
+	v.SetDefault("etcd.password", defaults.ETCDPassword)
 	v.SetDefault("shutdown.timeout", defaults.ShutdownTimeout.String())
 	v.SetDefault("signalg.ping_interval", defaults.PingInterval.String())
 	v.SetDefault("signalg.ping_timeout", defaults.PingTimeout.String())
@@ -142,7 +173,12 @@ func bindEnv(v *viper.Viper) {
 	v.AutomaticEnv()
 	must(v.BindEnv("http.addr", "KIM_GATE_HTTP_ADDR"))
 	must(v.BindEnv("websocket.path", "KIM_GATE_WS_PATH", "KIM_GATE_WEBSOCKET_PATH"))
-	must(v.BindEnv("grpc.socket", "KIM_GATE_GRPC_SOCKET"))
+	must(v.BindEnv("grpc.addr", "KIM_GATE_GRPC_ADDR"))
+	must(v.BindEnv("etcd.endpoints", "KIM_GATE_ETCD_ENDPOINTS"))
+	must(v.BindEnv("etcd.service", "KIM_GATE_ETCD_SERVICE"))
+	must(v.BindEnv("etcd.ttl", "KIM_GATE_ETCD_TTL"))
+	must(v.BindEnv("etcd.username", "KIM_GATE_ETCD_USERNAME"))
+	must(v.BindEnv("etcd.password", "KIM_GATE_ETCD_PASSWORD"))
 	must(v.BindEnv("shutdown.timeout", "KIM_GATE_SHUTDOWN_TIMEOUT"))
 	must(v.BindEnv("signalg.ping_interval", "KIM_GATE_PING_INTERVAL"))
 	must(v.BindEnv("signalg.ping_timeout", "KIM_GATE_PING_TIMEOUT"))
@@ -160,7 +196,12 @@ func bindFlags(v *viper.Viper, fs *pflag.FlagSet) error {
 	bindings := map[string]string{
 		"http.addr":                    "http-addr",
 		"websocket.path":               "ws-path",
-		"grpc.socket":                  "grpc-socket",
+		"grpc.addr":                    "grpc-addr",
+		"etcd.endpoints":               "etcd-endpoints",
+		"etcd.service":                 "etcd-service",
+		"etcd.ttl":                     "etcd-ttl",
+		"etcd.username":                "etcd-username",
+		"etcd.password":                "etcd-password",
 		"shutdown.timeout":             "shutdown-timeout",
 		"signalg.ping_interval":        "ping-interval",
 		"signalg.ping_timeout":         "ping-timeout",
@@ -203,7 +244,20 @@ func (c *Config) normalize() {
 	c.JWTSecret = strings.TrimSpace(c.JWTSecret)
 	c.HTTPAddr = strings.TrimSpace(c.HTTPAddr)
 	c.WebSocketPath = normalizePath(c.WebSocketPath)
-	c.GRPCSocket = strings.TrimSpace(c.GRPCSocket)
+	c.GRPCAddr = strings.TrimSpace(c.GRPCAddr)
+	c.ETCDEndpointsStr = strings.TrimSpace(c.ETCDEndpointsStr)
+	if c.ETCDEndpointsStr != "" {
+		parts := strings.Split(c.ETCDEndpointsStr, ",")
+		c.ETCDEndpoints = make([]string, 0, len(parts))
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				c.ETCDEndpoints = append(c.ETCDEndpoints, p)
+			}
+		}
+	}
+	c.ETCDUsername = strings.TrimSpace(c.ETCDUsername)
+	c.ETCDPassword = strings.TrimSpace(c.ETCDPassword)
 	c.RedisDSN = strings.TrimSpace(c.RedisDSN)
 	c.RedisPushChannel = strings.TrimSpace(c.RedisPushChannel)
 	c.RedisPushUsersChannel = strings.TrimSpace(c.RedisPushUsersChannel)
@@ -219,8 +273,8 @@ func (c Config) Validate() error {
 	if c.WebSocketPath == "" {
 		return errors.New("websocket path is required")
 	}
-	if c.GRPCSocket == "" {
-		return errors.New("grpc socket path is required")
+	if c.GRPCAddr == "" {
+		return errors.New("grpc listen address is required")
 	}
 	if c.ShutdownTimeout <= 0 {
 		return errors.New("shutdown timeout must be positive")

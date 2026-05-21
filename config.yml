@@ -5,7 +5,14 @@ websocket:
   path: "/hub"
 
 grpc:
-  socket: "/tmp/kim-gate.sock"
+  addr: ":9090"
+
+etcd:
+  endpoints: "119.29.111.247:2379"
+  service: "kim-gate"
+  username: "root"
+  password: "YourSecurePassword123"
+  ttl: "15s"
 
 shutdown:
   timeout: "10s"
