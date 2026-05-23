@@ -8,6 +8,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/kanengo/ku/ipx"
 	"github.com/project-kgo/kim-gate/internal/config"
 	"github.com/project-kgo/kim-gate/internal/discovery"
 	kimgatev1 "github.com/project-kgo/kim-gate/proto/kimgate/v1"
@@ -48,7 +49,7 @@ func NewServer(cfg config.Config, service *GatewayService, logger *slog.Logger, 
 		instance: discovery.ServiceInstance{
 			ID:      instanceID,
 			Name:    etcdServiceName(cfg),
-			Address: cfg.GRPCAddr,
+			Address: etcdInternalAddr(cfg),
 		},
 		logger: logger,
 		done:   make(chan error, 1),
@@ -121,6 +122,19 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.logger.Info("grpc server shut down", slog.String("addr", s.addr))
 	}
 	return nil
+}
+
+func etcdInternalAddr(cfg config.Config) string {
+	_, port, err := net.SplitHostPort(cfg.GRPCAddr)
+	if err != nil {
+		panic(err)
+	}
+	internalIp, err := ipx.GetInternalIp()
+	if err != nil {
+		panic(err)
+	}
+
+	return net.JoinHostPort(internalIp, port)
 }
 
 func etcdServiceName(cfg config.Config) string {
